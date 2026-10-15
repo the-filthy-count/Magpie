@@ -17,6 +17,8 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 import gallery_dl.version
+import yt_dlp.version
+from app.downloads.video import media_tool_directory
 from fastapi import FastAPI, Request, HTTPException, Depends, UploadFile, File, Form
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, StreamingResponse, FileResponse
@@ -351,7 +353,10 @@ def create_app(config_dir=None, roots=None, start_queue=True):
         return {'status': 'ok'}
     @app.get('/api/version', dependencies=[Depends(auth)])
     def version():
-        return {'magpie': VERSION, 'gallery_dl': gallery_dl.version.__version__}
+        return {'magpie': VERSION, 'gallery_dl': gallery_dl.version.__version__,
+                'yt_dlp': yt_dlp.version.__version__,
+                'video_javascript': (media_tool_directory() / 'node').is_file(),
+                'ffmpeg': all((media_tool_directory() / name).is_file() for name in ('ffmpeg', 'ffprobe'))}
     @app.get('/api/system', dependencies=[Depends(auth)])
     def system():
         import ctypes

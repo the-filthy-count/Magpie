@@ -12,6 +12,9 @@ COPY backend/ ./
 RUN pip wheel --no-cache-dir --wheel-dir /wheels .
 
 FROM python:3.12-slim-bookworm
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*
+COPY --from=frontend /usr/local/bin/node /usr/local/libexec/magpie-node-real
+COPY --chmod=755 scripts/media-tools/ /usr/local/libexec/magpie/
 ARG PUID=1000
 ARG PGID=1000
 RUN groupadd -g ${PGID} magpie && useradd -u ${PUID} -g magpie -M -s /usr/sbin/nologin magpie \

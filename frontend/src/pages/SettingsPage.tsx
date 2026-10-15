@@ -100,7 +100,7 @@ export default function SettingsPage({
           <p className="muted">
             {tab === "general"
               ? "Small preferences. A smoother workflow."
-              : `Powered by gallery-dl ${system?.gallery_dl || "…"}. Safe settings apply to the next job.`}
+              : `Powered by gallery-dl ${system?.gallery_dl || "…"}. Video downloads also use yt-dlp. Settings apply to the next job.`}
           </p>
           <div className="form-grid">
             {tab === "general" ? (
@@ -434,6 +434,12 @@ export default function SettingsPage({
               <dd>Magpie {system?.magpie}</dd>
               <dt>Download engine</dt>
               <dd>gallery-dl {system?.gallery_dl}</dd>
+              <dt>Video engine</dt>
+              <dd>yt-dlp {system?.yt_dlp || "…"}</dd>
+              <dt>YouTube JavaScript</dt>
+              <dd>{system?.video_javascript ? "Sandboxed Node runtime" : "Unavailable"}</dd>
+              <dt>Video processing</dt>
+              <dd>{system?.ffmpeg ? "FFmpeg & FFprobe · local files only" : "Unavailable"}</dd>
               <dt>Filesystem sandbox</dt>
               <dd>{system?.landlock_abi ? `Landlock ABI ${system.landlock_abi}` : "Unavailable — downloads blocked"}</dd>
               <dt>Database health</dt>

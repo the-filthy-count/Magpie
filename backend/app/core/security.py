@@ -52,7 +52,7 @@ def guard_network():
     """Check the actual address immediately before connect; pin hostname resolution.
 
     This also applies to redirect destinations, media hosts and extractor API calls.
-    No HTTP proxies or external downloaders are enabled in worker configuration.
+    No HTTP proxies or external network downloaders are enabled in workers.
     """
     original = socket.socket.connect
     def connect(sock, address):

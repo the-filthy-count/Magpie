@@ -20,7 +20,18 @@ Not certified by these checks:
 
 - Deployment on the user's physical UGREEN NAS: no NAS connection or NAS IP was supplied. Check its firmware/kernel Landlock support and configure real NAS paths and UID/GID before deployment.
 - ARM64 execution: the Dockerfile uses multi-architecture base images, but only AMD64 was built/run here.
-- Every gallery-dl extractor or authenticated website: sites have different cookie, API, video and rate-limit requirements. External executable downloaders/postprocessors are deliberately disabled; HTTP-delivered media is supported.
+- Every gallery-dl extractor or authenticated website: sites have different cookie, API, video and rate-limit requirements. Video support was subsequently added through yt-dlp and bundled sandboxed media helpers; see the video integration validation below.
 - A native vector rendition of the supplied raster logo: SVG assets embed the original PNG losslessly. The supplied Bird font and illustration retain their original licensing.
 
 To repeat a public-network check against an already configured instance, set `MAGPIE_TEST_PASSWORD` (avoid placing the password in shell history) and run `python scripts/smoke.py`. `MAGPIE_TEST_BASE` defaults to `http://127.0.0.1:9080`. This creates a history entry and may save the small public Wikimedia image in the configured default destination. It never deletes media.
+
+
+## yt-dlp video integration update
+
+- Host backend suite: **49 passed, 1 skipped** (the bundled Node runtime test runs in Docker).
+- Container backend suite with the production restrictions: **50 passed**, including real yt-dlp generic-video extraction and download, video archive reuse, flat organisation, and a real FFmpeg merge verified by FFprobe to contain both audio and video streams.
+- Media-helper tests verify that seccomp denies network socket creation, Landlock blocks reads outside media/system-library paths, and Node's permission model denies filesystem reads and child-process execution in challenge JavaScript.
+- yt-dlp **2026.8.19**, official **yt-dlp-ejs 0.8.0**, FFmpeg/FFprobe and a sandboxed Node 24 runtime are bundled. Remote challenge-component downloads are disabled.
+- **4 frontend tests passed**, and TypeScript/Vite production compilation passed with video-engine status in Settings.
+- Live authenticated YouTube downloads and every yt-dlp extractor are not certified by these controlled tests; site changes, sign-in requirements and regional availability still apply.
+- The Git ignore rule is now scoped to the root media folder (`/downloads/`) so `backend/app/downloads/` is included in GitHub source checkouts.

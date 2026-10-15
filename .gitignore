@@ -1,6 +1,6 @@
 .env
-config/
-downloads/
+/config/
+/downloads/
 node_modules/
 dist/
 __pycache__/
