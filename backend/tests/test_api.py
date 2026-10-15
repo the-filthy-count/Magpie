@@ -91,3 +91,11 @@ def test_validation_errors_do_not_echo_secrets(admin):
     assert 'NEVER-ECHO-THIS' not in r.text
     r=admin.post('/api/auth/password',json={'password':'NEVER-ECHO-THIS'})
     assert 'NEVER-ECHO-THIS' not in r.text
+
+
+def test_album_total_persists_and_retry_resets(admin, destination):
+    job = admin.post('/api/downloads', json={'url': 'https://example.com/album', 'destination_id': destination['id']}).json()
+    assert job['total_files'] is None
+    admin.app_ref.state.store.execute("UPDATE jobs SET total_files=20, files=6, status='failed' WHERE id=?", (job['id'],))
+    assert admin.get('/api/downloads/' + job['id']).json()['total_files'] == 20
+    assert admin.post('/api/downloads/' + job['id'] + '/retry').json()['total_files'] is None

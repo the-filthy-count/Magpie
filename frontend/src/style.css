@@ -2004,3 +2004,59 @@ button.text-button {
   background: var(--app-background);
   background-attachment: fixed;
 }
+
+.path-input-row { display:flex; gap:10px; align-items:center; }
+.path-input-row input { min-width:0; flex:1; }
+.folder-dialog { width:min(560px,calc(100vw - 32px)); max-height:85vh; overflow:auto; padding:24px; border:1px solid var(--border); border-radius:18px; background:var(--panel,#002C46); color:var(--text,#F1F6FC); box-shadow:0 24px 80px #0008; }
+.folder-dialog::backdrop { background:#030812b8; }
+.folder-dialog-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; }
+.folder-dialog code { display:block; overflow-wrap:anywhere; margin:16px 0; }
+.folder-list { display:grid; gap:8px; max-height:42vh; overflow:auto; margin:16px 0; }
+.folder-list .folder-entry { justify-content:flex-start; width:100%; height:auto; min-height:40px; text-align:left; }
+.folder-entry span { overflow-wrap:anywhere; min-width:0; }
+
+.stat-card > strong { display:block; text-align:right; width:100%; }
+.album-progress { margin-top:14px; }
+.album-caption > span:first-child { text-align:left; }
+:root:not([data-theme="light"]) select { color-scheme:dark; }
+:root:not([data-theme="light"]) select option,
+:root:not([data-theme="light"]) select optgroup { color:#F1F6FC; background:#002C46; }
+[data-theme="light"] select { color-scheme:light; }
+[data-theme="light"] select option,
+[data-theme="light"] select optgroup { color:#030812; background:#F1F6FC; }
+
+/* Ice White counters retain their contrast in both interface themes. */
+.stat-card { background:#F1F6FC; border-color:#D4E0E8; color:#030812; }
+.stat-card > div { color:#344D60; }
+.stat-card > strong { color:#001330; }
+.stat-card small { color:#496171; }
+.stat-card svg { color:#005454; }
+
+/* All content tiles use the Ice White brand surface. */
+:root :is(.download-panel,.stat-card,.job-list,.job-card,.destination-card,.settings-card,.filter-bar,.login-card,.folder-dialog,.info-note) {
+  --panel:#F1F6FC; --panel2:#E7EFF6; --input:#FFFFFF; --line:#C8D7E2;
+  --text:#001330; --muted:#496171; --accent:#005454;
+  background:#F1F6FC; color:#001330; border-color:#C8D7E2; color-scheme:light;
+}
+:root :is(.download-panel,.job-card,.destination-card,.settings-card,.filter-bar,.login-card,.folder-dialog) :is(label,small,p,.muted,.job-url,.job-meta,.job-time,.current-file,.current-file>span,.selected-path,.panel-note,.panel-note>span,.panel-top>span:last-child,.destination-state,.destination-card code) { color:#496171; }
+:root :is(.download-panel,.settings-card,.filter-bar,.login-card,.folder-dialog) :is(input,select,textarea) { color:#001330; color-scheme:light; }
+:root :is(.download-panel,.settings-card,.filter-bar,.login-card,.folder-dialog) :is(input,textarea)::placeholder { color:#627584; opacity:1; }
+:root :is(.download-panel,.settings-card,.filter-bar,.login-card,.folder-dialog) :is(option,optgroup) { color:#001330; background:#F1F6FC; }
+:root .download-panel :is(.url-control,.destination-select) { background:#FFFFFF; border-color:#C8D7E2; color:#005454; }
+:root .download-panel .panel-note { background:#E7EFF6; color:#496171; }
+:root :is(.download-panel,.settings-card,.login-card) .form-error { color:#A52B30; }
+:root :is(.job-card,.folder-dialog) .form-error { color:#A52B30; }
+:root .job-card .progress { background:#CFDCE5; }
+:root .job-card .progress > div { background:#005454; }
+:root .job-card .progress progress::-webkit-progress-bar { background:#CFDCE5; }
+:root .job-card .progress progress::-webkit-progress-value { background:#005454; }
+:root .job-card .progress progress::-moz-progress-bar { background:#005454; }
+:root :is(.job-card,.destination-card,.job-list) :is(.site-icon,.destination-art,.empty>span) { background:#DCEBEA; color:#005454; border-color:#B5CECE; }
+:root .job-card .status-pill { color:#344D60; background:#E0E9F1; border-color:#C4D2DE; }
+:root .job-card :is(.status-pill.downloading,.status-pill.completed) { color:#004447; background:#DCEBEA; border-color:#B5CECE; }
+:root .job-card :is(.status-pill.failed,.status-pill.interrupted) { color:#942A32; background:#F6E1E2; border-color:#E2B9BC; }
+:root .destination-card .subtle-badge { color:#004447; background:#DCEBEA; border-color:#B5CECE; }
+:root .download-panel button.paste-button { width:40px; min-width:40px; padding:0; }
+
+/* Keep the primary brand action solid even while the form is incomplete. */
+button.pluck:disabled { opacity:1; background:#005454; color:#F1F6FC; border-color:#005454; filter:none; }

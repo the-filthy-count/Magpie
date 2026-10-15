@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Folder, Plus, ShieldCheck, Trash2, Image, Box, Star } from "lucide-react";
+import { Folder, Plus, ShieldCheck, Trash2, Image, Box, Star, Video, Film, Music, Headphones, Camera, Heart, Pencil, Save, X } from "lucide-react";
 import { api, Destination } from "../services/api";
 type Notice = (message: string) => void;
 const icons: Record<string, typeof Folder> = {
@@ -7,7 +7,14 @@ const icons: Record<string, typeof Folder> = {
   image: Image,
   box: Box,
   star: Star,
+  video: Video,
+  film: Film,
+  music: Music,
+  headphones: Headphones,
+  camera: Camera,
+  heart: Heart,
 };
+import PathPicker from "../components/PathPicker";
 import Empty from "../components/Empty";
 export default function Destinations({
   destinations,
@@ -42,7 +49,7 @@ export default function Destinations({
           <p>Choose where your finds land. Files stay yours, always.</p>
         </div>
         <button
-          className="primary"
+          className="icon-button" title="Add destination" aria-label="Add destination"
           onClick={() => {
             setAdding(!adding);
             setEditing("");
@@ -52,7 +59,7 @@ export default function Destinations({
             setError("");
           }}
         >
-          <Plus size={17} /> Add destination
+          <Plus size={18} />
         </button>
       </div>
       {adding && (
@@ -97,20 +104,14 @@ export default function Destinations({
                   ))}
                 </select>
               </label>
-              <label className="wide">
-                Container path
-                <input
-                  value={path}
-                  required
-                  disabled={!!editing}
-                  onChange={(e) => setPath(e.target.value)}
-                  placeholder="/downloads/pictures"
-                />
+              <div className="wide">
+                <label htmlFor="destination-path">Container path</label>
+                <PathPicker value={path} onChange={setPath} disabled={!!editing} />
                 <small>
                   Permitted roots: {roots.join(", ")}. Add bind mounts in Docker
                   Compose before adding a destination.
                 </small>
-              </label>
+              </div>
               <label className="wide">
                 Description
                 <input
@@ -123,13 +124,13 @@ export default function Destinations({
             </div>
             {error && <p className="form-error">{error}</p>}
             <div className="button-row">
-              <button className="primary">Save destination</button>
+              <button className="icon-button" title="Save destination" aria-label="Save destination"><Save size={18} /></button>
               <button
                 type="button"
-                className="secondary"
+                className="icon-button" title="Cancel" aria-label="Cancel"
                 onClick={() => setAdding(false)}
               >
-                Cancel
+                <X size={18} />
               </button>
             </div>
           </form>
@@ -158,7 +159,7 @@ export default function Destinations({
               <div className="button-row">
                 {!d.is_default && (
                   <button
-                    className="text-button"
+                    className="icon-button" title="Set default destination" aria-label="Set default destination"
                     onClick={async () => {
                       try {
                         await api("/destinations/" + d.id, "PATCH", {
@@ -170,11 +171,11 @@ export default function Destinations({
                       }
                     }}
                   >
-                    Set default
+                    <Star size={18} />
                   </button>
                 )}
                 <button
-                  className="text-button"
+                  className="icon-button" title={"Edit " + d.name} aria-label={"Edit " + d.name}
                   onClick={() => {
                     setEditing(d.id);
                     setName(d.name);
@@ -185,7 +186,7 @@ export default function Destinations({
                     setError("");
                   }}
                 >
-                  Edit
+                  <Pencil size={18} />
                 </button>
                 <button
                   className="icon-button delete-destination"

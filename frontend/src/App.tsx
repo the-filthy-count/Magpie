@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { ArrowDownToLine, ArrowUpRight, Check, CheckCheck, ChevronRight, Folder, History, LogOut, Menu, Settings2, ShieldCheck, X, Image, Sun, Moon } from "lucide-react";
+import { ArrowDownToLine, ArrowUpRight, Check, CheckCheck, ChevronRight, Folder, ListRestart, LogOut, Menu, Settings2, ShieldCheck, X, Image, Sun, Moon } from "lucide-react";
 import { api, setCsrf, bytes, Job, Destination } from "./services/api";
 
 type Notice = (message: string) => void;
@@ -123,7 +123,7 @@ export default function App() {
         <nav>
           {[
             ["downloads", "Downloads", ArrowDownToLine],
-            ["history", "History", History],
+            ["history", "History", ListRestart],
             ["destinations", "Destinations", Folder],
             ["settings", "Settings", Settings2],
           ].map(([id, label, Icon]: any) => (
@@ -287,10 +287,10 @@ export default function App() {
               <div className="section-heading recent-heading">
                 <h2>Recent activity</h2>
                 <button
-                  className="text-button"
+                  className="icon-button" title="View history" aria-label="View history"
                   onClick={() => setPage("history")}
                 >
-                  View history <ArrowUpRight size={15} />
+                  <ListRestart size={18} />
                 </button>
               </div>
               <div className="job-list">

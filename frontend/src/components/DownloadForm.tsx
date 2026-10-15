@@ -65,7 +65,7 @@ export default function DownloadForm({
             autoComplete="off"
           />
           <button
-            className="paste-button"
+            className="paste-button icon-button" title="Paste URL" aria-label="Paste URL"
             type="button"
             onClick={async () => {
               try {
@@ -77,7 +77,7 @@ export default function DownloadForm({
               }
             }}
           >
-            <Clipboard size={15} /> Paste
+            <Clipboard size={18} />
           </button>
         </div>
         <div className="download-controls">
@@ -119,7 +119,7 @@ export default function DownloadForm({
             ) : (
               <ArrowDownToLine size={18} />
             )}{" "}
-            Pluck <span>↵</span>
+            Pluck
           </button>
         </div>
         {error && (

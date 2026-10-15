@@ -14,6 +14,9 @@ export default function JobCard({
     j.file_total && j.file_bytes != null
       ? Math.min(100, (j.file_bytes / j.file_total) * 100)
       : null;
+  const handled = j.files + j.skipped;
+  const albumPct = j.total_files && j.total_files >= handled
+    ? (handled / j.total_files) * 100 : null;
   return (
     <article className={"job-card " + j.status}>
       <div className={"site-icon " + (j.status === "completed" ? "done" : "")}>
@@ -75,6 +78,13 @@ export default function JobCard({
             <small className="current-file">
               {j.current_filename || "Finding media…"}
               {pct !== null && <span>Current file · {pct.toFixed(0)}%</span>}
+            </small>
+            <div className={"progress album-progress " + (albumPct === null ? "indeterminate" : "")}>
+              {albumPct !== null ? <progress max={100} value={albumPct} aria-label="Album progress" /> : <div />}
+            </div>
+            <small className="current-file album-caption">
+              <span>{albumPct !== null ? `Album · ${handled} of ${j.total_files} files` : `Overall · ${handled} files handled · total unknown`}{j.skipped ? ` · ${j.skipped} skipped` : ""}</span>
+              {albumPct !== null && <span>{albumPct.toFixed(0)}%</span>}
             </small>
           </>
         )}

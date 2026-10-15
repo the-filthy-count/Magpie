@@ -34,6 +34,8 @@ class Store:
             CREATE TABLE IF NOT EXISTS cookies (
               id TEXT PRIMARY KEY, website TEXT UNIQUE NOT NULL, updated_at TEXT NOT NULL);
             ''')
+            if 'total_files' not in {row[1] for row in db.execute('PRAGMA table_info(jobs)')}:
+                db.execute('ALTER TABLE jobs ADD COLUMN total_files INTEGER')
             if not db.execute("SELECT 1 FROM kv WHERE key='settings'").fetchone():
                 db.execute('INSERT INTO kv VALUES (?,?)', ('settings', json.dumps(DEFAULTS)))
     @contextmanager

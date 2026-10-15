@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { History, Search, Trash2 } from "lucide-react";
+import { ListRestart, Search, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { api, date, Job, Destination } from "../services/api";
 type Notice = (message: string) => void;
 import JobCard from "../components/JobCard";
@@ -177,7 +177,7 @@ export default function HistoryPage({
           results.map((j) => <JobCard key={j.id} job={j} action={action} />)
         ) : (
           <Empty
-            icon={<History />}
+            icon={<ListRestart />}
             title="Nothing here just yet"
             text="Try another filter, or pluck something new."
           />
@@ -185,19 +185,19 @@ export default function HistoryPage({
       </div>
       <div className="pagination">
         <button
-          className="secondary"
+          className="icon-button" title="Previous page" aria-label="Previous page"
           disabled={!offset}
           onClick={() => setOffset(Math.max(0, offset - 100))}
         >
-          Previous
+          <ChevronLeft size={18} />
         </button>
         <span>Page {offset / 100 + 1}</span>
         <button
-          className="secondary"
+          className="icon-button" title="Next page" aria-label="Next page"
           disabled={!hasMore}
           onClick={() => setOffset(offset + 100)}
         >
-          Next
+          <ChevronRight size={18} />
         </button>
       </div>
     </>

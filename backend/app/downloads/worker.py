@@ -85,8 +85,17 @@ def run(spec):
     guard_network()
     landlock([root, archive])
     validate_url(spec['url'])
+    class AlbumDownloadJob(job.DownloadJob):
+        def handle_directory(self, metadata):
+            # In the pinned Bunkr album extractor, Directory.count is the
+            # album total. Other extractors may use count for individual posts.
+            if self.extractor.category == 'bunkr' and self.extractor.subcategory == 'album':
+                count = metadata.get('count')
+                if type(count) is int and count > 0:
+                    emit(total_files=count)
+            return super().handle_directory(metadata)
     try:
-        task = job.DownloadJob(spec['url'])
+        task = AlbumDownloadJob(spec['url'])
     except exception.NoExtractorError:
         # Prefix is internal only: the submitted URL was validated as HTTP(S).
         task = job.DownloadJob('ytdl:' + spec['url'])

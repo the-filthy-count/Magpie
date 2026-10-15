@@ -54,3 +54,15 @@ describe("truthful job progress", () => {
     expect(bytes(null)).toBe("—");
   });
 });
+
+it("shows album progress independently of the current file and includes archived files", () => {
+  render(<JobCard job={{ ...job, files: 6, skipped: 2, total_files: 20, file_bytes: 22, file_total: 100 }} action={vi.fn()} />);
+  expect(screen.getByLabelText("Current file progress")).toHaveAttribute("value", "22");
+  expect(screen.getByLabelText("Album progress")).toHaveAttribute("value", "40");
+  expect(screen.getByText("Album · 8 of 20 files · 2 skipped")).toBeVisible();
+});
+it("does not invent an album percentage when the total is unknown", () => {
+  render(<JobCard job={job} action={vi.fn()} />);
+  expect(screen.queryByLabelText("Album progress")).toBeNull();
+  expect(screen.getByText("Overall · 3 files handled · total unknown")).toBeVisible();
+});

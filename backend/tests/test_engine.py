@@ -71,3 +71,25 @@ def test_media_cannot_follow_symlink_into_archive(tmp_path):
     result=subprocess.run([sys.executable,'-c',SCRIPT],input=json.dumps(spec)+'\n',capture_output=True,text=True,timeout=20)
     assert result.returncode!=0
     assert not (archive/'sensitive.png').exists()
+
+
+def test_bunkr_album_total_and_archived_files(tmp_path):
+    # Controlled album metadata; real pinned Bunkr.items(), DownloadJob,
+    # output hooks, downloader and archive handling are exercised.
+    script = SCRIPT.replace('sys.exit(run(spec))', '''
+from gallery_dl.extractor.bunkr import BunkrAlbumExtractor
+BunkrAlbumExtractor.fetch_album = lambda self, ident: ([
+    {'file': 'https://93.184.216.34/first.png', 'name': 'first.png', 'id': 'first'},
+    {'file': 'https://93.184.216.34/second.png', 'name': 'second.png', 'id': 'second'},
+], {'album_id': ident, 'album_name': 'Fixture', 'count': 2})
+sys.exit(run(spec))
+''')
+    root = tmp_path / 'downloads'; root.mkdir()
+    archive = tmp_path / 'archive'; archive.mkdir()
+    spec = dict(url='https://bunkr.cr/a/FIXTURE', destination_path=str(root), archive=str(archive), settings=DEFAULTS.copy(), payload=PNG.hex())
+    for attempt in range(2):
+        result = subprocess.run([sys.executable, '-c', script], input=json.dumps(spec)+'\n', capture_output=True, text=True, timeout=20)
+        assert result.returncode == 0, result.stdout + result.stderr
+        events = [json.loads(line) for line in result.stdout.splitlines()]
+        assert any(e.get('total_files') == 2 for e in events)
+        assert any(e.get('files' if attempt == 0 else 'skipped') == 2 for e in events)

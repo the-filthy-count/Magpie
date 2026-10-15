@@ -17,12 +17,12 @@ class DestinationCreate(Strict):
     name: str = Field(min_length=1, max_length=60)
     path: str = Field(max_length=1024)
     description: str = Field(default='', max_length=250)
-    icon: Literal['folder', 'image', 'box', 'star'] = 'folder'
+    icon: Literal['folder', 'image', 'box', 'star', 'video', 'film', 'music', 'headphones', 'camera', 'heart'] = 'folder'
     is_default: bool = False
 class DestinationPatch(Strict):
     name: str | None = Field(default=None, min_length=1, max_length=60)
     description: str | None = Field(default=None, max_length=250)
-    icon: Literal['folder', 'image', 'box', 'star'] | None = None
+    icon: Literal['folder', 'image', 'box', 'star', 'video', 'film', 'music', 'headphones', 'camera', 'heart'] | None = None
     is_default: bool | None = None
 class Settings(Strict):
     concurrency: int = Field(default=2, ge=1, le=5)
@@ -64,6 +64,7 @@ class JobView(BaseModel):
     started_at: str | None
     completed_at: str | None
     files: int
+    total_files: int | None = None
     skipped: int
     bytes: int
     speed: float | None

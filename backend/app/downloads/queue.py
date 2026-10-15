@@ -95,7 +95,7 @@ class Queue:
                         event = json.loads(line)
                         if 'error' in event:
                             error = str(event['error'])[:500]
-                        allowed = {'files','skipped','bytes','speed','current_filename','file_bytes','file_total'}
+                        allowed = {'files','skipped','bytes','speed','current_filename','file_bytes','file_total','total_files'}
                         updates = {k: v for k, v in event.items() if k in allowed}
                         if updates:
                             self.store.execute('UPDATE jobs SET ' + ','.join(f'{k}=?' for k in updates) + ' WHERE id=?', (*updates.values(), row['id']))

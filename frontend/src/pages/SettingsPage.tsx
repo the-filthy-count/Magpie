@@ -449,8 +449,8 @@ export default function SettingsPage({
               <dt>Active workers</dt>
               <dd>{system?.active_workers}</dd>
             </dl>
-            <button className="secondary" onClick={load}>
-              <RefreshCw size={14} /> Refresh status
+            <button className="icon-button" title="Refresh status" aria-label="Refresh status" onClick={load}>
+              <RefreshCw size={18} />
             </button>
           </section>
           <section className="settings-card">

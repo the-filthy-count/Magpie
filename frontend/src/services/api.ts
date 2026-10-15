@@ -36,6 +36,7 @@ export type Job = {
   destination_path: string;
   status: string;
   files: number;
+  total_files?: number | null;
   skipped: number;
   bytes: number;
   speed: number | null;

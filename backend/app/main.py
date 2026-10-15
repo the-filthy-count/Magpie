@@ -198,6 +198,36 @@ def create_app(config_dir=None, roots=None, start_queue=True):
     @app.get('/api/roots', dependencies=[Depends(auth)])
     def permitted_roots():
         return {'roots': [str(p) for p in config['roots']]}
+    @app.get('/api/folders', dependencies=[Depends(auth)])
+    def folders(path: str = '', suggest: bool = False):
+        # Only explicitly mounted roots and real child directories are exposed.
+        if len(path) > 4096 or '..' in Path(path).parts:
+            raise HTTPException(400, 'Invalid folder path')
+        roots = config['roots']
+        prefix = ''
+        if suggest and path and not path.endswith('/'):
+            prefix = Path(path).name.casefold()
+            parent = str(Path(path).parent)
+            if not any(Path(parent).is_relative_to(r) for r in roots):
+                return {'path': '', 'parent': None, 'folders': [str(r) for r in roots if str(r).casefold().startswith(path.casefold())], 'truncated': False}
+            path = parent
+        if not path:
+            return {'path': '', 'parent': None, 'folders': [str(r) for r in roots], 'truncated': False}
+        try:
+            current = Path(destination_path(path, roots))
+            result = []
+            with os.scandir(current) as entries:
+                for entry in entries:
+                    if entry.name.casefold().startswith(prefix) and entry.is_dir(follow_symlinks=False):
+                        # Revalidate resolved children; never follow directory symlinks.
+                        child = destination_path(str(current / entry.name), roots)
+                        result.append(child)
+                        if len(result) > 200:
+                            break
+            parent = str(current.parent) if any(current.parent.is_relative_to(r) for r in roots) else ''
+            return {'path': str(current), 'parent': parent, 'folders': sorted(result[:200], key=str.casefold), 'truncated': len(result) > 200}
+        except (OSError, ValueError):
+            raise HTTPException(400, 'Folder is unavailable or outside permitted download roots')
     @app.post('/api/destinations', response_model=DestinationView, status_code=201, dependencies=[Depends(auth)])
     def add_destination(body: DestinationCreate):
         path = destination_path(body.path, config['roots'])
@@ -285,7 +315,7 @@ def create_app(config_dir=None, roots=None, start_queue=True):
         # URL DNS and original filesystem snapshot are revalidated at retry and execution.
         validate_url(row['url'])
         destination_path(row['destination_path'], config['roots'])
-        changed = store.execute("UPDATE jobs SET status='queued',created_at=?,started_at=NULL,completed_at=NULL,error=NULL,files=0,skipped=0,bytes=0,speed=NULL,current_filename=NULL,file_bytes=NULL,file_total=NULL,cancel_requested=0,seq=(SELECT COALESCE(MAX(seq),0)+1 FROM jobs) WHERE id=? AND status IN ('failed','cancelled','interrupted')", (now(),ident))
+        changed = store.execute("UPDATE jobs SET status='queued',created_at=?,started_at=NULL,completed_at=NULL,error=NULL,files=0,skipped=0,bytes=0,speed=NULL,current_filename=NULL,file_bytes=NULL,file_total=NULL,total_files=NULL,cancel_requested=0,seq=(SELECT COALESCE(MAX(seq),0)+1 FROM jobs) WHERE id=? AND status IN ('failed','cancelled','interrupted')", (now(),ident))
         if not changed:
             raise HTTPException(409, 'Only failed, cancelled or interrupted jobs may be retried')
         return get_job(ident)
