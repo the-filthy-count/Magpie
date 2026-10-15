@@ -1,6 +1,6 @@
 # Magpie
 
-**Find it. Fetch it. Keep it.** A self-hosted, single-container media downloader for your NAS. Paste a public gallery-dl-supported HTTP(S) link, pick a configured destination, and **Pluck**.
+**Find it. Fetch it. File it.** A self-hosted, single-container media downloader for your NAS. Paste a public gallery-dl-supported HTTP(S) link, pick a configured destination, and **Pluck**.
 
 Python 3.12+, FastAPI, gallery-dl 1.32.16, yt-dlp 2026.8.19, FFmpeg, SQLite, React, TypeScript, Vite and Tailwind. No external database, cloud service or separate queue service. The interface and authenticated API share port **9080**.
 

@@ -1991,3 +1991,16 @@ button.text-button {
   margin-left: auto;
   margin-right: 0;
 }
+
+/* Carry the sign-in screen's teal glow across the workspace. */
+:root {
+  --app-background: radial-gradient(ellipse at 50% 25%, #00545444, transparent 65%), var(--bg);
+}
+[data-theme="light"] {
+  --app-background: radial-gradient(ellipse at 50% 25%, #00545415, transparent 65%), var(--bg);
+}
+.app-shell,
+.sidebar .nav-item.selected {
+  background: var(--app-background);
+  background-attachment: fixed;
+}

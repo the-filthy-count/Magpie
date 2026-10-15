@@ -211,13 +211,9 @@ export default function App() {
             <>
               <div className="page-heading">
                 <div>
-                  <div className="eyebrow">A GOOD FIND DESERVES A HOME</div>
                   <h1>
-                    Find it. Fetch it. Keep it<span>.</span>
+                    Find it. Fetch it. File it<span>.</span>
                   </h1>
-                  <p>
-                    Good things from the internet, right where you want them.
-                  </p>
                 </div>
                 <span className="subtle-badge">
                   <ShieldCheck size={14} /> Made for your NAS
