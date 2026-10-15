@@ -60,34 +60,7 @@ export default function JobCard({
             <span className="job-time">{date(j.completed_at)}</span>
           )}
         </div>
-        {j.status === "downloading" && (
-          <>
-            <div
-              className={"progress " + (pct === null ? "indeterminate" : "")}
-            >
-              {pct !== null ? (
-                <progress
-                  max={100}
-                  value={pct}
-                  aria-label="Current file progress"
-                />
-              ) : (
-                <div />
-              )}
-            </div>
-            <small className="current-file">
-              {j.current_filename || "Finding media…"}
-              {pct !== null && <span>Current file · {pct.toFixed(0)}%</span>}
-            </small>
-            <div className={"progress album-progress " + (albumPct === null ? "indeterminate" : "")}>
-              {albumPct !== null ? <progress max={100} value={albumPct} aria-label="Album progress" /> : <div />}
-            </div>
-            <small className="current-file album-caption">
-              <span>{albumPct !== null ? `Album · ${handled} of ${j.total_files} files` : `Overall · ${handled} files handled · total unknown`}{j.skipped ? ` · ${j.skipped} skipped` : ""}</span>
-              {albumPct !== null && <span>{albumPct.toFixed(0)}%</span>}
-            </small>
-          </>
-        )}
+
       </div>
       <div className="job-actions">
         {active(j) ? (
@@ -128,6 +101,34 @@ export default function JobCard({
           </button>
         )}
       </div>
+        {j.status === "downloading" && (
+          <div className="job-progress">
+            <div
+              className={"progress " + (pct === null ? "indeterminate" : "")}
+            >
+              {pct !== null ? (
+                <progress
+                  max={100}
+                  value={pct}
+                  aria-label="Current file progress"
+                />
+              ) : (
+                <div />
+              )}
+            </div>
+            <small className="current-file">
+              {j.current_filename || "Finding media…"}
+              {pct !== null && <span>Current file · {pct.toFixed(0)}%</span>}
+            </small>
+            <div className={"progress album-progress " + (albumPct === null ? "indeterminate" : "")}>
+              {albumPct !== null ? <progress max={100} value={albumPct} aria-label="Album progress" /> : <div />}
+            </div>
+            <small className="current-file album-caption">
+              <span>{albumPct !== null ? `Album · ${handled} of ${j.total_files} files` : `Overall · ${handled} files handled · total unknown`}{j.skipped ? ` · ${j.skipped} skipped` : ""}</span>
+              {albumPct !== null && <span>{albumPct.toFixed(0)}%</span>}
+            </small>
+          </div>
+        )}
       {details && (
         <div className="job-details">
           <dl>

@@ -1,3 +1,4 @@
+import DestinationPicker from "./DestinationPicker";
 import { useState, useEffect } from "react";
 import { ArrowDownToLine, ArrowUpRight, Folder, LoaderCircle, ShieldCheck, Link2, Clipboard } from "lucide-react";
 import { api, Destination } from "../services/api";
@@ -81,28 +82,7 @@ export default function DownloadForm({
           </button>
         </div>
         <div className="download-controls">
-          <div className="destination-select">
-            <Folder size={18} />
-            <div>
-              <label htmlFor="destination">SAVE TO</label>
-              <select
-                id="destination"
-                value={destination}
-                onChange={(e) => setDestination(e.target.value)}
-                required
-              >
-                <option value="" disabled>
-                  Choose a destination
-                </option>
-                {destinations.map((d) => (
-                  <option key={d.id} value={d.id} disabled={!d.writable}>
-                    {d.name}
-                    {!d.writable ? " (not writable)" : ""}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          <DestinationPicker destinations={destinations} value={destination} onChange={setDestination} />
           <span className="selected-path">
             {destinations.find((d) => d.id === destination)?.path || (
               <button type="button" className="text-button" onClick={onManage}>

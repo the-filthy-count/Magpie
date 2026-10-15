@@ -2060,3 +2060,35 @@ button.text-button {
 
 /* Keep the primary brand action solid even while the form is incomplete. */
 button.pluck:disabled { opacity:1; background:#005454; color:#F1F6FC; border-color:#005454; filter:none; }
+
+/* Brand indicators on Ice White tiles. */
+:root :is(.job-card,.destination-card,.job-list) :is(.site-icon,.destination-art,.empty>span),
+:root .job-card .status-pill,
+:root .job-card .status-pill:is(.downloading,.completed,.failed,.interrupted),
+:root .destination-card .subtle-badge { background:#001330; color:#F1F6FC; border-color:#001330; }
+
+.download-panel { overflow:visible; }
+.download-panel .panel-note { border-radius:0 0 12px 12px; }
+.destination-picker { position:relative; min-width:240px; max-width:100%; }
+:root .download-panel button.destination-trigger { background:#F1F6FC; color:#001330; border:1px solid #C8D7E2; border-radius:10px; padding:10px 14px; width:100%; height:auto; min-height:56px; justify-content:flex-start; gap:12px; text-align:left; filter:none; }
+.destination-trigger > span { flex:1; min-width:0; }
+:root .download-panel .destination-trigger small { display:block; font-size:9px; letter-spacing:1.2px; color:#496171; margin-bottom:3px; }
+.destination-trigger strong { font-size:13px; font-weight:600; }
+.destination-trigger > svg { color:#005454; flex-shrink:0; }
+.picker-chevron { transition:transform .15s; }
+.picker-chevron.open { transform:rotate(180deg); }
+.destination-options { position:absolute; top:calc(100% + 8px); left:0; width:max(100%,300px); max-width:calc(100vw - 64px); max-height:300px; overflow:auto; z-index:50; padding:6px; border:1px solid #C8D7E2; border-radius:12px; background:#F1F6FC; box-shadow:0 12px 36px #00133026; }
+:root .download-panel button.destination-option { background:#F1F6FC; color:#001330; border:0; border-radius:7px; width:100%; height:auto; min-height:56px; padding:10px; justify-content:flex-start; text-align:left; gap:12px; filter:none; }
+:root .download-panel button.destination-option.focused { background:#DFEAF3; }
+:root .download-panel button.destination-option[aria-disabled="true"] { opacity:.6; cursor:not-allowed; }
+.destination-option > span { flex:1; min-width:0; }
+.destination-option strong { display:block; font-size:13px; font-weight:600; }
+:root .download-panel .destination-option small { display:block; font-size:10px; color:#496171; margin-top:4px; overflow-wrap:anywhere; }
+.destination-option > svg { color:#005454; flex-shrink:0; }
+@media(max-width:600px) { .destination-picker { width:100%; } }
+
+.job-progress { flex-basis:100%; width:100%; min-width:0; }
+.job-progress > .progress:first-child { margin-top:0; }
+
+.status-pill { display:inline-flex; align-items:center; justify-content:center; min-height:24px; line-height:1; padding:0 8px; gap:5px; vertical-align:middle; }
+.status-pill > svg { display:block; flex-shrink:0; }
