@@ -1,0 +1,12 @@
+.git
+**/node_modules
+**/__pycache__
+**/.pytest_cache
+**/*.egg-info
+frontend/dist
+backend/static
+config
+downloads
+.env
+*.zip
+work

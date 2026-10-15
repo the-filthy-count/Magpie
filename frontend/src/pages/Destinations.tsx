@@ -1,0 +1,232 @@
+import { useState, useEffect } from "react";
+import { Folder, Plus, ShieldCheck, Trash2, Image, Box, Star } from "lucide-react";
+import { api, Destination } from "../services/api";
+type Notice = (message: string) => void;
+const icons: Record<string, typeof Folder> = {
+  folder: Folder,
+  image: Image,
+  box: Box,
+  star: Star,
+};
+import Empty from "../components/Empty";
+export default function Destinations({
+  destinations,
+  reload,
+  notify,
+}: {
+  destinations: Destination[];
+  reload: () => Promise<void>;
+  notify: Notice;
+}) {
+  const [adding, setAdding] = useState(false),
+    [name, setName] = useState(""),
+    [path, setPath] = useState(""),
+    [description, setDescription] = useState(""),
+    [icon, setIcon] = useState("folder"),
+    [editing, setEditing] = useState(""),
+    [error, setError] = useState(""),
+    [roots, setRoots] = useState<string[]>([]);
+  useEffect(() => {
+    api("/roots")
+      .then((r) => setRoots(r.roots))
+      .catch((e) => notify(e.message));
+  }, [notify]);
+  return (
+    <>
+      <div className="page-heading">
+        <div>
+          <div className="eyebrow">EVERY FIND HAS A HOME</div>
+          <h1>
+            Your destinations<span>.</span>
+          </h1>
+          <p>Choose where your finds land. Files stay yours, always.</p>
+        </div>
+        <button
+          className="primary"
+          onClick={() => {
+            setAdding(!adding);
+            setEditing("");
+            setName("");
+            setPath("");
+            setDescription("");
+            setError("");
+          }}
+        >
+          <Plus size={17} /> Add destination
+        </button>
+      </div>
+      {adding && (
+        <section className="settings-card">
+          <h2>{editing ? "Edit destination" : "A new place to keep things"}</h2>
+          <form
+            className="settings-form"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              try {
+                await api(
+                  "/destinations" + (editing ? "/" + editing : ""),
+                  editing ? "PATCH" : "POST",
+                  editing
+                    ? { name, description, icon }
+                    : { name, path, description, icon },
+                );
+                setAdding(false);
+                reload();
+                notify("Destination saved");
+              } catch (e) {
+                setError((e as Error).message);
+              }
+            }}
+          >
+            <div className="form-grid">
+              <label>
+                Name
+                <input
+                  value={name}
+                  required
+                  maxLength={60}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Pictures"
+                />
+              </label>
+              <label>
+                Icon
+                <select value={icon} onChange={(e) => setIcon(e.target.value)}>
+                  {Object.keys(icons).map((i) => (
+                    <option key={i}>{i}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="wide">
+                Container path
+                <input
+                  value={path}
+                  required
+                  disabled={!!editing}
+                  onChange={(e) => setPath(e.target.value)}
+                  placeholder="/downloads/pictures"
+                />
+                <small>
+                  Permitted roots: {roots.join(", ")}. Add bind mounts in Docker
+                  Compose before adding a destination.
+                </small>
+              </label>
+              <label className="wide">
+                Description
+                <input
+                  value={description}
+                  maxLength={250}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="A home for your visual inspiration"
+                />
+              </label>
+            </div>
+            {error && <p className="form-error">{error}</p>}
+            <div className="button-row">
+              <button className="primary">Save destination</button>
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setAdding(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </section>
+      )}
+      <div className="destinations-grid">
+        {destinations.map((d) => {
+          const Icon = icons[d.icon] || Folder;
+          return (
+            <section className="destination-card" key={d.id}>
+              <div className="destination-card-top">
+                <span className="destination-art">
+                  <Icon size={26} />
+                </span>
+                {d.is_default && <span className="subtle-badge">Default</span>}
+              </div>
+              <h2>{d.name}</h2>
+              <code>{d.path}</code>
+              <p>{d.description || "Ready for your next collection."}</p>
+              <div className="destination-state">
+                <span className={"status-dot " + (!d.writable ? "bad" : "")} />
+                {d.writable
+                  ? "Accessible & writable"
+                  : "Not writable — check mount permissions"}
+              </div>
+              <div className="button-row">
+                {!d.is_default && (
+                  <button
+                    className="text-button"
+                    onClick={async () => {
+                      try {
+                        await api("/destinations/" + d.id, "PATCH", {
+                          is_default: true,
+                        });
+                        reload();
+                      } catch (e) {
+                        notify((e as Error).message);
+                      }
+                    }}
+                  >
+                    Set default
+                  </button>
+                )}
+                <button
+                  className="text-button"
+                  onClick={() => {
+                    setEditing(d.id);
+                    setName(d.name);
+                    setPath(d.path);
+                    setDescription(d.description);
+                    setIcon(d.icon);
+                    setAdding(true);
+                    setError("");
+                  }}
+                >
+                  Edit
+                </button>
+                <button
+                  className="icon-button delete-destination"
+                  title="Remove destination"
+                  aria-label={"Remove " + d.name}
+                  onClick={async () => {
+                    if (
+                      confirm(
+                        "Remove " + d.name + "? Downloaded files will be kept.",
+                      )
+                    ) {
+                      try {
+                        await api("/destinations/" + d.id, "DELETE");
+                        reload();
+                      } catch (e) {
+                        notify((e as Error).message);
+                      }
+                    }
+                  }}
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            </section>
+          );
+        })}
+      </div>
+      {!destinations.length && !adding && (
+        <Empty
+          icon={<Folder />}
+          title="Give your finds a home"
+          text="Add a mounted directory to get started."
+        />
+      )}
+      <div className="info-note">
+        <ShieldCheck size={17} />
+        <p>
+          Destinations point to your NAS bind mounts. Removing a destination
+          never deletes downloaded media.
+        </p>
+      </div>
+    </>
+  );
+}

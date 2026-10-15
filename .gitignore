@@ -1,0 +1,10 @@
+.env
+config/
+downloads/
+node_modules/
+dist/
+__pycache__/
+.pytest_cache/
+*.egg-info/
+*.tsbuildinfo
+.venv/
