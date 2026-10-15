@@ -1984,3 +1984,10 @@ button.text-button {
     gap: 8px;
   }
 }
+
+/* The sign-in bird sits at the right of the card's brand area. */
+.login-card > img {
+  display: block;
+  margin-left: auto;
+  margin-right: 0;
+}
