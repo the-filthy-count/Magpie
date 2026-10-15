@@ -2065,7 +2065,7 @@ button.pluck:disabled { opacity:1; background:#005454; color:#F1F6FC; border-col
 :root :is(.job-card,.destination-card,.job-list) :is(.site-icon,.destination-art,.empty>span),
 :root .job-card .status-pill,
 :root .job-card .status-pill:is(.downloading,.completed,.failed,.interrupted),
-:root .destination-card .subtle-badge { background:#001330; color:#F1F6FC; border-color:#001330; }
+:root .destination-card .subtle-badge { background:#002C46; color:#F1F6FC; border-color:#002C46; }
 
 .download-panel { overflow:visible; }
 .download-panel .panel-note { border-radius:0 0 12px 12px; }
