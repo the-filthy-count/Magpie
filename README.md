@@ -1,4 +1,6 @@
-# Magpie
+<p align="center">
+  <img src="brand/brand.webp" alt="Logo" width="500">
+</p>
 
 **Find it. Fetch it. File it.** A self-hosted, single-container media downloader for your NAS. Paste a public gallery-dl-supported HTTP(S) link, pick a configured destination, and **Pluck**.
 
