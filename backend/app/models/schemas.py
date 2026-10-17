@@ -34,6 +34,7 @@ class DestinationCreate(Strict):
     is_default: bool = False
     organisation: Literal['inherit','organised','flat','flat_gallery','custom'] = 'inherit'
 class DestinationPatch(Strict):
+    path: str | None = Field(default=None, min_length=1, max_length=1024)
     name: str | None = Field(default=None, min_length=1, max_length=60)
     description: str | None = Field(default=None, max_length=250)
     icon: Literal['folder', 'image', 'box', 'star', 'video', 'film', 'music', 'headphones', 'camera', 'heart'] | None = None

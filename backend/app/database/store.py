@@ -42,6 +42,9 @@ class Store:
             ''')
             if 'total_files' not in {row[1] for row in db.execute('PRAGMA table_info(jobs)')}:
                 db.execute('ALTER TABLE jobs ADD COLUMN total_files INTEGER')
+            for table in ('destinations','jobs'):
+                if 'archive_id' not in {row[1] for row in db.execute(f'PRAGMA table_info({table})')}:
+                    db.execute(f'ALTER TABLE {table} ADD COLUMN archive_id TEXT')
             if 'organisation' not in {row[1] for row in db.execute('PRAGMA table_info(destinations)')}:
                 db.execute("ALTER TABLE destinations ADD COLUMN organisation TEXT NOT NULL DEFAULT 'inherit'")
             if 'organisation_override' not in {row[1] for row in db.execute('PRAGMA table_info(jobs)')}:

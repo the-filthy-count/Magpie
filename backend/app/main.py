@@ -218,6 +218,7 @@ def create_app(config_dir=None, roots=None, start_queue=True):
         if not row:
             raise HTTPException(404, 'Destination not found')
         result = dict(row)
+        result.pop('archive_id', None)
         try:
             path = destination_path(row['path'], config['roots'])
             result['accessible'] = os.access(path, os.R_OK | os.X_OK)
@@ -277,9 +278,26 @@ def create_app(config_dir=None, roots=None, start_queue=True):
         return destination(store.one('SELECT * FROM destinations WHERE id=?', (ident,)))
     @app.patch('/api/destinations/{ident}', response_model=DestinationView, dependencies=[Depends(auth)])
     def edit_destination(ident: str, body: DestinationPatch):
-        destination(store.one('SELECT * FROM destinations WHERE id=?', (ident,)))
         changes = body.model_dump(exclude_none=True)
         with store.db() as db:
+            db.execute('BEGIN IMMEDIATE')
+            old = db.execute('SELECT * FROM destinations WHERE id=?', (ident,)).fetchone()
+            if not old:
+                raise HTTPException(404, 'Destination not found')
+            if 'path' in changes:
+                try:
+                    changes['path'] = destination_path(changes['path'], config['roots'])
+                except (OSError, ValueError):
+                    raise HTTPException(400, 'Choose an existing folder inside a permitted download root')
+                if changes['path'] != old['path']:
+                    if db.execute("SELECT 1 FROM jobs WHERE destination_id=? AND status IN ('queued','downloading')", (ident,)).fetchone():
+                        raise HTTPException(409, 'Finish or cancel active jobs before changing this destination path')
+                    checked = destination({**dict(old), 'path': changes['path']})
+                    if not checked['writable']:
+                        raise HTTPException(400, 'Destination is not writable')
+                    # New jobs need a fresh archive at the new location. Old
+                    # jobs retain their path and archive, including on retry.
+                    changes['archive_id'] = uuid.uuid4().hex
             if changes.get('is_default'):
                 db.execute('UPDATE destinations SET is_default=0')
             elif changes.get('is_default') is False:
@@ -325,8 +343,8 @@ def create_app(config_dir=None, roots=None, start_queue=True):
                 raise HTTPException(429, 'Queue is full')
             if db.execute("SELECT 1 FROM jobs WHERE url=? AND destination_id=? AND status IN ('queued','downloading')", (body.url, dest['id'])).fetchone():
                 raise HTTPException(409, 'This URL is already queued for that destination')
-            db.execute('INSERT INTO jobs (id,url,website,destination_id,destination_name,destination_path,created_at,organisation_override) VALUES (?,?,?,?,?,?,?,?)',
-                       (ident, body.url, urlsplit(body.url).hostname.lower(), dest['id'], dest['name'], dest['path'], now(), dest['organisation']))
+            db.execute('INSERT INTO jobs (id,url,website,destination_id,destination_name,destination_path,created_at,organisation_override,archive_id) VALUES (?,?,?,?,?,?,?,?,?)',
+                       (ident, body.url, urlsplit(body.url).hostname.lower(), dest['id'], dest['name'], dest['path'], now(), dest['organisation'], dict(row).get('archive_id') or dest['id']))
         return get_job(ident)
     @app.get('/api/downloads', response_model=list[JobView], dependencies=[Depends(auth)])
     def downloads(status: str = '', website: str = '', destination_id: str = '', q: str = '', since: str = '', until: str = '', limit: int = 200, offset: int = 0):

@@ -91,3 +91,7 @@ values. A destination's explicit organisation mode has the final say.
 All options are validated and translated by Magpie. Arbitrary gallery-dl/yt-dlp
 configuration, executable hooks, shell commands and external filesystem paths
 remain unavailable.
+
+## Changing a destination path
+
+Edit the container path under Destinations → Edit, with typing, autocomplete or Browse. The target must already exist and be writable under a permitted download root. Finish or cancel active jobs before changing it. Files stay in their original folder. New jobs use a fresh archive for the new path; history and retries keep their original path and archive.

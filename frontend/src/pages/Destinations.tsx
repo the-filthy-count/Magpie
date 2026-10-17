@@ -82,7 +82,7 @@ export default function Destinations({
                   "/destinations" + (editing ? "/" + editing : ""),
                   editing ? "PATCH" : "POST",
                   editing
-                    ? { name, description, icon, organisation }
+                    ? { name, path, description, icon, organisation }
                     : { name, path, description, icon, organisation },
                 );
                 setAdding(false);
@@ -114,10 +114,10 @@ export default function Destinations({
               </label>
               <div className="wide">
                 <label htmlFor="destination-path">Container path</label>
-                <PathPicker value={path} onChange={setPath} disabled={!!editing} />
+                <PathPicker value={path} onChange={setPath} disabled={false} />
                 <small>
                   Permitted roots: {roots.join(", ")}. Add bind mounts in Docker
-                  Compose before adding a destination.
+                  Compose before adding a destination. Path changes require active jobs to finish or be cancelled; existing files stay in their original folder.
                 </small>
               </div>
               <label className="wide">Download organisation

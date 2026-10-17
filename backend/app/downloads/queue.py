@@ -73,7 +73,7 @@ class Queue:
         try:
             from app.core.security import destination_path
             path = destination_path(row['destination_path'], self.config['roots'])
-            archive = self.config['dir'] / 'archives' / row['destination_id']
+            archive = self.config['dir'] / 'archives' / (row.get('archive_id') or row['destination_id'])
             archive.mkdir(mode=0o700, parents=True, exist_ok=True)
             # Cookie selection is domain scoped, never gallery-dl category text supplied by a URL.
             cookies = self.store.all('SELECT * FROM cookies')
