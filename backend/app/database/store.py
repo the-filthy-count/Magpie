@@ -5,7 +5,10 @@ from contextlib import contextmanager
 from pathlib import Path
 
 DEFAULTS = dict(concurrency=2, retries=3, timeout=30, rate_limit=0, theme='dark',
-                retention_days=90, organisation='organised', filename='', directory=[], advanced={})
+                retention_days=90, organisation='organised', filename='', directory=[], advanced={}, video_quality='best', video_format='best', playlist='all',
+                media_filter='all', extensions=[], max_files=0, max_file_size=0, subtitles='off',
+                subtitle_languages=['en'], schedule_enabled=False, schedule_start='00:00', schedule_end='00:00',
+                resume_interrupted=False, site_rules=[])
 
 class Store:
     def __init__(self, path):
@@ -39,6 +42,13 @@ class Store:
             ''')
             if 'total_files' not in {row[1] for row in db.execute('PRAGMA table_info(jobs)')}:
                 db.execute('ALTER TABLE jobs ADD COLUMN total_files INTEGER')
+            if 'organisation' not in {row[1] for row in db.execute('PRAGMA table_info(destinations)')}:
+                db.execute("ALTER TABLE destinations ADD COLUMN organisation TEXT NOT NULL DEFAULT 'inherit'")
+            if 'organisation_override' not in {row[1] for row in db.execute('PRAGMA table_info(jobs)')}:
+                db.execute('ALTER TABLE jobs ADD COLUMN organisation_override TEXT')
+            existing=db.execute("SELECT value FROM kv WHERE key='settings'").fetchone()
+            if existing:
+                db.execute("UPDATE kv SET value=? WHERE key='settings'", (json.dumps({**DEFAULTS, **json.loads(existing[0])}),))
             if not db.execute("SELECT 1 FROM kv WHERE key='settings'").fetchone():
                 db.execute('INSERT INTO kv VALUES (?,?)', ('settings', json.dumps(DEFAULTS)))
     @contextmanager

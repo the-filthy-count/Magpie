@@ -31,6 +31,7 @@ export default function Destinations({
     [path, setPath] = useState(""),
     [description, setDescription] = useState(""),
     [icon, setIcon] = useState("folder"),
+    [organisation, setOrganisation] = useState("inherit"),
     [editing, setEditing] = useState(""),
     [error, setError] = useState(""),
     [roots, setRoots] = useState<string[]>([]);
@@ -61,6 +62,7 @@ export default function Destinations({
             setName("");
             setPath("");
             setDescription("");
+            setOrganisation("inherit");
             setError("");
           }}
         >
@@ -80,8 +82,8 @@ export default function Destinations({
                   "/destinations" + (editing ? "/" + editing : ""),
                   editing ? "PATCH" : "POST",
                   editing
-                    ? { name, description, icon }
-                    : { name, path, description, icon },
+                    ? { name, description, icon, organisation }
+                    : { name, path, description, icon, organisation },
                 );
                 setAdding(false);
                 reload();
@@ -118,6 +120,15 @@ export default function Destinations({
                   Compose before adding a destination.
                 </small>
               </div>
+              <label className="wide">Download organisation
+                <select value={organisation} onChange={e=>setOrganisation(e.target.value)}>
+                  <option value="inherit">Use global / website default</option>
+                  <option value="organised">Organised</option>
+                  <option value="flat">Flat</option>
+                  <option value="flat_gallery">Flat with gallery name in filename</option>
+                  <option value="custom">Custom · shared directory template</option>
+                </select>
+              </label>
               <label className="wide">
                 Description
                 <input
@@ -188,6 +199,7 @@ export default function Destinations({
                     setPath(d.path);
                     setDescription(d.description);
                     setIcon(d.icon);
+                    setOrganisation(d.organisation || "inherit");
                     setAdding(true);
                     setError("");
                   }}

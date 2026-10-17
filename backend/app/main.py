@@ -273,7 +273,7 @@ def create_app(config_dir=None, roots=None, start_queue=True):
             default = body.is_default or not db.execute('SELECT 1 FROM destinations').fetchone()
             if default:
                 db.execute('UPDATE destinations SET is_default=0')
-            db.execute('INSERT INTO destinations VALUES (?,?,?,?,?,?)', (ident, body.name.strip(), path, body.description, body.icon, int(default)))
+            db.execute('INSERT INTO destinations (id,name,path,description,icon,is_default,organisation) VALUES (?,?,?,?,?,?,?)', (ident, body.name.strip(), path, body.description, body.icon, int(default), body.organisation))
         return destination(store.one('SELECT * FROM destinations WHERE id=?', (ident,)))
     @app.patch('/api/destinations/{ident}', response_model=DestinationView, dependencies=[Depends(auth)])
     def edit_destination(ident: str, body: DestinationPatch):
@@ -325,8 +325,8 @@ def create_app(config_dir=None, roots=None, start_queue=True):
                 raise HTTPException(429, 'Queue is full')
             if db.execute("SELECT 1 FROM jobs WHERE url=? AND destination_id=? AND status IN ('queued','downloading')", (body.url, dest['id'])).fetchone():
                 raise HTTPException(409, 'This URL is already queued for that destination')
-            db.execute('INSERT INTO jobs (id,url,website,destination_id,destination_name,destination_path,created_at) VALUES (?,?,?,?,?,?,?)',
-                       (ident, body.url, urlsplit(body.url).hostname.lower(), dest['id'], dest['name'], dest['path'], now()))
+            db.execute('INSERT INTO jobs (id,url,website,destination_id,destination_name,destination_path,created_at,organisation_override) VALUES (?,?,?,?,?,?,?,?)',
+                       (ident, body.url, urlsplit(body.url).hostname.lower(), dest['id'], dest['name'], dest['path'], now(), dest['organisation']))
         return get_job(ident)
     @app.get('/api/downloads', response_model=list[JobView], dependencies=[Depends(auth)])
     def downloads(status: str = '', website: str = '', destination_id: str = '', q: str = '', since: str = '', until: str = '', limit: int = 200, offset: int = 0):

@@ -138,3 +138,7 @@ The application uses the supplied Magpie illustration, Bird identity font and si
 ## App integrations
 
 Create scoped Bearer tokens under **Settings → API** to submit galleries and monitor individual file and album progress. See [the app API guide](docs/API.md) for curl examples, live events and permissions.
+
+## Download preferences
+
+Settings → Download engine includes flat layouts with gallery-title filenames, video quality/format, playlist handling, media filters, file/size limits, subtitles, daily hours, automatic interrupted-job recovery and website defaults. Destinations can override organisation. See [Download settings](docs/DOWNLOAD_SETTINGS.md) for precedence, examples and engine limitations.

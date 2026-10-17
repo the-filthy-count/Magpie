@@ -2110,3 +2110,11 @@ button.pluck:disabled { opacity:1; background:#005454; color:#F1F6FC; border-col
 img.avatar { display:block; object-fit:cover; border:0; background:transparent; flex-shrink:0; }
 .settings-form label.never-expire-option { display:flex; flex-direction:row; align-items:center; gap:10px; }
 .settings-form .never-expire-option input { width:16px; height:16px; margin:0; accent-color:#005454; }
+.download-preferences { width:100%; border-top:1px solid #C8D7E2; padding-top:16px; }
+.download-preferences summary { cursor:pointer; font-weight:600; padding:10px 0; }
+.preference-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:20px 0 14px; }
+.settings-form label.preference-check { display:flex; flex-direction:row; align-items:center; gap:10px; }
+.settings-form label.preference-check input { width:16px; height:16px; margin:0; accent-color:#005454; }
+.site-preferences { margin-top:24px; }
+.site-rule { padding:16px; margin:14px 0; border:1px solid #C8D7E2; border-radius:10px; }
+.site-rule>.icon-button { margin-top:12px; }

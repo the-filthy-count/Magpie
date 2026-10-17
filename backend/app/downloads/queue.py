@@ -35,6 +35,8 @@ class Queue:
         self.last_cleanup = 0
     async def start(self):
         self.store.execute("UPDATE jobs SET status='interrupted', completed_at=?, error='Application restarted during download', speed=NULL WHERE status='downloading'", (now(),))
+        if self.store.get('settings').get('resume_interrupted'):
+            self.store.execute("UPDATE jobs SET status='queued',started_at=NULL,completed_at=NULL,error=NULL,files=0,skipped=0,bytes=0,speed=NULL,current_filename=NULL,file_bytes=NULL,file_total=NULL,total_files=NULL,cancel_requested=0 WHERE status='interrupted'")
         self.task = asyncio.create_task(self.schedule())
     async def stop(self):
         self.stopping = True
@@ -50,7 +52,8 @@ class Queue:
                     cutoff = (datetime.now(timezone.utc) - timedelta(days=settings['retention_days'])).isoformat()
                     self.store.execute("DELETE FROM jobs WHERE status NOT IN ('queued','downloading') AND completed_at < ?", (cutoff,))
                 self.store.execute('DELETE FROM sessions WHERE expires < ?', (time.time(),))
-            while len(self.active) < settings['concurrency'] and not self.stopping:
+            from app.downloads.options import schedule_allows
+            while schedule_allows(settings) and len(self.active) < settings['concurrency'] and not self.stopping:
                 # Atomic status transition protects claims. A process-wide lock in
                 # main additionally prevents separate application schedulers.
                 with self.store.db() as db:
@@ -76,6 +79,8 @@ class Queue:
             cookies = self.store.all('SELECT * FROM cookies')
             cookie = next((str(self.config['dir'] / 'cookies' / (c['id'] + '.txt')) for c in cookies
                            if row['website'] == c['website'] or row['website'].endswith('.' + c['website'])), None)
+            from app.downloads.options import effective_settings
+            settings = effective_settings(settings, row['website'], row.get('organisation_override'))
             spec = dict(url=row['url'], destination_path=path, archive=str(archive), cookie=cookie, settings=settings)
             env = {k: v for k, v in os.environ.items() if k.upper() not in
                    ('HTTP_PROXY','HTTPS_PROXY','ALL_PROXY','NO_PROXY','PYTHONPATH','PYTHONSTARTUP')}

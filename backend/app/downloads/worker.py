@@ -19,7 +19,9 @@ def run(spec):
     # No user/system config, hooks, executable expressions or external network
     # downloaders are accepted. Only sandboxed local FFmpeg helpers may execute.
     config.clear()
-    settings = spec['settings']
+    from app.database.store import DEFAULTS
+    settings = {**DEFAULTS, **spec['settings']}
+    from app.downloads.options import accepts_file, gallery_name, install_gallery_prefix
     extractor = {
         'base-directory': str(root), 'archive': str(archive / 'archive.sqlite3'),
         'archive-event': ['file'], 'retries': settings['retries'],
@@ -29,16 +31,18 @@ def run(spec):
     }
     if settings['filename']:
         extractor['filename'] = safe_template(settings['filename'])
-    if settings['organisation'] == 'flat':
+    if settings['organisation'] in ('flat','flat_gallery'):
         extractor['directory'] = []
     elif settings['organisation'] == 'custom':
         extractor['directory'] = [safe_template(x) for x in settings['directory']]
+    if settings['organisation']=='flat_gallery':
+        install_gallery_prefix()
     # Organised mode uses the extractor's native metadata-aware layout.
     # Native layouts avoid imposing absent creator/gallery metadata globally.
     if spec.get('cookie'):
         extractor['cookies'] = spec['cookie']
     config.set((), 'extractor', extractor)
-    config.set((), 'downloader', {'http': {'rate': settings['rate_limit'] or None, 'progress': 0.5},
+    config.set((), 'downloader', {'http': {'rate': settings['rate_limit'] or None, 'progress': 0.5, 'part': True, 'filesize-max': settings['max_file_size'] or None},
                                 'ytdl': {'enabled': True, 'module': 'yt_dlp', 'progress': 0.5}})
     config.set(('cache',), 'file', str(archive / 'cache.sqlite3'))
     completed_bytes = 0
@@ -52,6 +56,8 @@ def run(spec):
             emit(current_filename=Path(path).name, file_bytes=0, file_total=None, speed=None)
         def progress(self, total, downloaded, speed):
             nonlocal last, current_bytes
+            if settings['max_file_size'] and (downloaded > settings['max_file_size'] or (total and total > settings['max_file_size'])):
+                raise exception.StopDownload()
             current_bytes = downloaded
             now = time.monotonic()
             if now - last >= .5:
@@ -81,12 +87,32 @@ def run(spec):
                 emit(message=f'{record.name.split(".")[0]}: {record.levelname.lower()}; see job outcome')
     logging.basicConfig(handlers=[SanitizedLog()], level=logging.WARNING, force=True)
     from app.downloads.paths import install_path_boundary
-    install_path_boundary(root, settings['organisation'] == 'organised')
+    install_path_boundary(root, settings['organisation'] == 'organised', settings['max_file_size'])
     guard_network()
     landlock([root, archive])
     validate_url(spec['url'])
+    videos_seen = 0
     class AlbumDownloadJob(job.DownloadJob):
+        def handle_url(self, url, metadata):
+            nonlocal videos_seen
+            if settings['max_files'] and files >= settings['max_files']:
+                raise exception.StopExtraction()
+            if metadata.get('_ytdl_info_dict') is not None:
+                if settings['playlist']=='single' and videos_seen:
+                    raise exception.StopExtraction()
+                videos_seen += 1
+            if not accepts_file(settings, metadata):
+                return
+            title=gallery_name(metadata) or getattr(self,'_magpie_gallery','')
+            if title:metadata['_magpie_gallery']=title
+            return super().handle_url(url, metadata)
+
         def handle_directory(self, metadata):
+            self._magpie_gallery=gallery_name(metadata)
+            if not self._magpie_gallery and self.extractor.subcategory in ('album','gallery'):
+                title=metadata.get('title')
+                if isinstance(title,str) and title.strip().lower() not in ('none','unknown','null'):
+                    self._magpie_gallery=title.strip()
             # In the pinned Bunkr album extractor, Directory.count is the
             # album total. Other extractors may use count for individual posts.
             if self.extractor.category == 'bunkr' and self.extractor.subcategory == 'album':
@@ -98,7 +124,7 @@ def run(spec):
         task = AlbumDownloadJob(spec['url'])
     except exception.NoExtractorError:
         # Prefix is internal only: the submitted URL was validated as HTTP(S).
-        task = job.DownloadJob('ytdl:' + spec['url'])
+        task = AlbumDownloadJob('ytdl:' + spec['url'])
     task.run()
     if task.status:
         emit(error=f'gallery-dl exited with status {task.status}. Check site support, cookies, rate limits and destination permissions.')

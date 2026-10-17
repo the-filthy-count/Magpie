@@ -50,6 +50,7 @@ export type Job = {
   attempts: number;
 };
 export type Destination = {
+  organisation?: string;
   id: string;
   name: string;
   path: string;

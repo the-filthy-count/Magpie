@@ -154,3 +154,29 @@ console.log('sandboxed');
                           env={**os.environ,'MAGPIE_MEDIA_ROOT':str(tmp_path)},timeout=15)
     assert result.returncode==0,result.stderr
     assert result.stdout.strip()=='sandboxed'
+
+
+def test_video_quality_subtitles_and_mp4_preference(tmp_path,media,monkeypatch):
+    # Real yt-dlp format selection and subtitle writes with controlled transport.
+    global SCRIPT
+    script=SCRIPT.replace("merge=spec.pop('merge',False)", "merge=spec.pop('merge',False)\nfixtures['/sub.vtt']=b'WEBVTT\\n\\n00:00.000 --> 00:00.800\\nFixture caption\\n'\nfixtures['/low.mp4']=fixtures['/video.mp4']")
+    script=script.replace('    payload=fixtures[path]', "    print(json.dumps({'transport_path':path}),flush=True)\n    payload=fixtures[path]")
+    script=script.replace("'formats':[", "'subtitles':{'en':[{'ext':'vtt','url':'https://93.184.216.34/sub.vtt'}]},'formats':[")
+    script=script.replace("'height':16},", "'height':1080},\n                {'format_id':'low','url':'https://93.184.216.34/low.mp4','ext':'mp4','vcodec':'mp4v','acodec':'none','width':16,'height':720},")
+    monkeypatch.setitem(globals(),'SCRIPT',script)
+    root,events=execute(tmp_path,media,merge=True,settings={'video_quality':'720','video_format':'mp4','subtitles':'manual','subtitle_languages':['en'],'organisation':'flat'})
+    requested=[e['transport_path'] for e in events if 'transport_path' in e]
+    assert '/low.mp4' in requested and '/video.mp4' not in requested
+    subtitles=list(root.glob('*.vtt'));assert subtitles
+    assert 'Fixture caption' in subtitles[0].read_text()
+    assert len(list(root.glob('*.mp4')))==1
+
+
+@pytest.mark.parametrize('mode,count',[('single',1),('all',2)])
+def test_real_video_playlist_selection(tmp_path,media,monkeypatch,mode,count):
+    script=SCRIPT.replace("            return {'id':'fixture'", "            data={'id':'fixture'")
+    script=script.replace('    original_classes=yt_dlp.extractor.gen_extractor_classes', "            return {'_type':'playlist','id':'album','title':'Playlist','entries':[dict(data,id='one',title='One'),dict(data,id='two',title='Two')]}\n    original_classes=yt_dlp.extractor.gen_extractor_classes")
+    monkeypatch.setitem(globals(),'SCRIPT',script)
+    root,events=execute(tmp_path,media,merge=True,settings={'playlist':mode,'organisation':'flat'})
+    assert len(list(root.glob('*.mp4')))==count
+    assert any(e.get('files')==count for e in events)

@@ -1,3 +1,4 @@
+import DownloadPreferences from "../components/DownloadPreferences";
 import ApiSettings from "../components/ApiSettings";
 import { useState, useEffect } from "react";
 import { Check, Plus, RefreshCw, ShieldCheck, Trash2, Activity, ExternalLink } from "lucide-react";
@@ -217,6 +218,7 @@ export default function SettingsPage({
                       Organised · native website layout
                     </option>
                     <option value="flat">Flat · destination folder</option>
+                    <option value="flat_gallery">Flat · gallery name in filename</option>
                     <option value="custom">Custom · your templates</option>
                   </select>
                 </label>
@@ -246,6 +248,7 @@ export default function SettingsPage({
                     </small>
                   </label>
                 )}
+                <DownloadPreferences draft={draft} update={update} />
                 <label className="wide">
                   Advanced configuration (JSON)
                   <textarea

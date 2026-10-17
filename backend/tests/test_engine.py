@@ -93,3 +93,30 @@ sys.exit(run(spec))
         events = [json.loads(line) for line in result.stdout.splitlines()]
         assert any(e.get('total_files') == 2 for e in events)
         assert any(e.get('files' if attempt == 0 else 'skipped') == 2 for e in events)
+
+
+def test_partial_file_survives_failure_and_resumes(tmp_path):
+    root=tmp_path/'downloads';root.mkdir();archive=tmp_path/'archive';archive.mkdir()
+    payload=PNG+b'\x00'*200000
+    spec=dict(url='https://93.184.216.34/resume.png',destination_path=str(root),archive=str(archive),settings={**DEFAULTS,'organisation':'flat','retries':0},payload=payload.hex())
+    failing=SCRIPT.replace('def send(self,request,**kwargs):', '''
+class Broken(io.BytesIO):
+    def read(self, size=-1):
+        if self.tell()>=65536:
+            from urllib3.exceptions import ProtocolError
+            raise ProtocolError('controlled interruption')
+        return super().read(min(size if size>=0 else 32768,32768))
+def send(self,request,**kwargs):''').replace('io.BytesIO(payload)','Broken(payload)')
+    first=subprocess.run([sys.executable,'-c',failing],input=json.dumps(spec)+'\n',capture_output=True,text=True,timeout=20)
+    assert first.returncode!=0
+    partial=list(root.glob('*.part'));assert len(partial)==1
+    retained=partial[0].stat().st_size;assert 0<retained<len(payload)
+    resume=SCRIPT.replace("    response.status_code=200",'''    offset=int(request.headers.get('Range','bytes=0-').split('=')[1].split('-')[0])
+    print(json.dumps({'range_offset':offset}),flush=True)
+    response.status_code=206 if offset else 200''').replace("    response.raw=HTTPResponse", "    if offset:\n        response.headers['Content-Range']=f'bytes {offset}-{len(payload)-1}/{len(payload)}'\n        response.headers['Content-Length']=str(len(payload)-offset)\n    response.raw=HTTPResponse").replace('io.BytesIO(payload)','io.BytesIO(payload[offset:])')
+    second=subprocess.run([sys.executable,'-c',resume],input=json.dumps(spec)+'\n',capture_output=True,text=True,timeout=20)
+    assert second.returncode==0,second.stdout+second.stderr
+    assert any(json.loads(line).get('range_offset')==retained for line in second.stdout.splitlines())
+    completed=list(root.glob('*.png'));assert len(completed)==1
+    assert completed[0].read_bytes()==payload
+    assert not list(root.glob('*.part'))

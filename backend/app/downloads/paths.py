@@ -3,7 +3,7 @@ from pathlib import Path
 import sys
 
 
-def install_path_boundary(root, organised=False):
+def install_path_boundary(root, organised=False, max_file_size=0):
     from gallery_dl.path import PathFormat
     root = Path(root).resolve(strict=True)
     def check(value):
@@ -24,6 +24,8 @@ def install_path_boundary(root, organised=False):
         def wrapped(self, *args, _original=original, **kwargs):
             for attr in ('realdirectory', 'realpath', 'temppath'):
                 check(getattr(self, attr, ''))
+            if _original.__name__=='finalize' and max_file_size and self.temppath and Path(self.temppath).stat().st_size > max_file_size:
+                raise PermissionError('Downloaded file exceeds configured size limit')
             return _original(self, *args, **kwargs)
         setattr(PathFormat, name, wrapped)
     if organised:

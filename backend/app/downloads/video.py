@@ -26,6 +26,8 @@ def install_video_support(root, settings, events):
             params = dict(params or {})
             # Override even options supplied by an extractor: network access must
             # stay in guarded Python downloaders, never native external helpers.
+            from app.downloads.options import video_options
+            params.update(video_options(settings))
             params.update({
                 'proxy': '', 'cachedir': False, 'cookiefile': None,
                 'cookiesfrombrowser': None, 'usenetrc': False,
