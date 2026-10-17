@@ -120,3 +120,18 @@ def send(self,request,**kwargs):''').replace('io.BytesIO(payload)','Broken(paylo
     completed=list(root.glob('*.png'));assert len(completed)==1
     assert completed[0].read_bytes()==payload
     assert not list(root.glob('*.part'))
+
+
+def test_bunkr_file_link_reports_one_file(tmp_path):
+    script=SCRIPT.replace('sys.exit(run(spec))', '''
+from gallery_dl.extractor.bunkr import BunkrMediaExtractor
+BunkrMediaExtractor.fetch_album=lambda self,ident:([{'file':'https://93.184.216.34/one.png','name':'one.png','id':'one'}],{'album_id':'fixture','album_name':'Single fixture','count':1})
+sys.exit(run(spec))
+''')
+    root=tmp_path/'media';root.mkdir();archive=tmp_path/'archive';archive.mkdir()
+    spec=dict(url='https://bunkr.pk/f/FIXTURE',destination_path=str(root),archive=str(archive),settings=DEFAULTS.copy(),payload=PNG.hex())
+    result=subprocess.run([sys.executable,'-c',script],input=json.dumps(spec)+'\n',capture_output=True,text=True,timeout=20)
+    assert result.returncode==0,result.stdout+result.stderr
+    events=[json.loads(line) for line in result.stdout.splitlines()]
+    assert any(e.get('total_files')==1 for e in events)
+    assert any(e.get('files')==1 for e in events)

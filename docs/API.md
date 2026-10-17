@@ -64,10 +64,13 @@ label does not redirect queued jobs or change their archive.
 | `total_files` | Known gallery size; null when unknown (Bunkr albums supported) |
 
 These explicit percentage fields appear in individual/list REST responses and SSE
-updates. Album progress is file-count based, not byte-weighted across the album.
+updates. For confirmed single-file jobs (`total_files: 1`), both percentages mirror the
+current file byte percentage and both remain 100 once that file is downloaded or
+skipped. Multi-file album progress is file-count based, not byte-weighted.
 An unknown, zero or inconsistent total yields null; completion status never
 fabricates a total. After a file finishes, its byte counters clear and its file
-percentage becomes null until another measurable file starts.
+percentage becomes null until another measurable file starts, except confirmed
+single-file jobs, which keep both percentages at 100.
 
 Current file fraction: `file_bytes / file_total` only when the total is positive.
 Gallery fraction: `(files + skipped) / total_files` only when the total is known

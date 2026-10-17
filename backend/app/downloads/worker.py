@@ -117,7 +117,7 @@ def run(spec):
                     self._magpie_gallery=title.strip()
             # In the pinned Bunkr album extractor, Directory.count is the
             # album total. Other extractors may use count for individual posts.
-            if self.extractor.category == 'bunkr' and self.extractor.subcategory == 'album':
+            if self.extractor.category == 'bunkr' and self.extractor.subcategory in ('album','media','direct-link'):
                 count = metadata.get('count')
                 if type(count) is int and count > 0:
                     emit(total_files=count)
@@ -127,6 +127,8 @@ def run(spec):
     except exception.NoExtractorError:
         # Prefix is internal only: the submitted URL was validated as HTTP(S).
         task = AlbumDownloadJob('ytdl:' + spec['url'])
+    if task.extractor.category=='directlink':
+        emit(total_files=1)
     task.run()
     if task.status:
         emit(error=f'gallery-dl exited with status {task.status}. Check site support, cookies, rate limits and destination permissions.')

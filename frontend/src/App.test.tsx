@@ -66,3 +66,14 @@ it("does not invent an album percentage when the total is unknown", () => {
   expect(screen.queryByLabelText("Album progress")).toBeNull();
   expect(screen.getByText("Overall · 3 files handled · total unknown")).toBeVisible();
 });
+
+it('mirrors file progress in the album bar for a single file',()=>{
+ render(<JobCard job={{...job,files:0,skipped:0,total_files:1,file_bytes:37,file_total:100}} action={vi.fn()}/>);
+ expect(screen.getByLabelText('Current file progress')).toHaveAttribute('value','37');
+ expect(screen.getByLabelText('Album progress')).toHaveAttribute('value','37');
+});
+it('uses the API percentages in both progress bars',()=>{
+ render(<JobCard job={{...job,files:0,total_files:1,file_progress_percent:42.5,album_progress_percent:42.5}} action={vi.fn()}/>);
+ expect(screen.getByLabelText('Current file progress')).toHaveAttribute('value','42.5');
+ expect(screen.getByLabelText('Album progress')).toHaveAttribute('value','42.5');
+});

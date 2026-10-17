@@ -182,17 +182,17 @@ class JobView(BaseModel):
     def custom_fields_json(cls,value):
         return json.loads(value) if isinstance(value,str) else value
 
-    @computed_field(description='Current file completion from measured bytes, 0–100; null when unknown or no active file')
+    @computed_field(description='File completion from measured bytes, 0–100; confirmed single-file jobs stay at 100 after completion')
     @property
     def file_progress_percent(self) -> float | None:
-        from app.core.progress import percentage
-        return percentage(self.file_bytes, self.file_total)
+        from app.core.progress import progress_fields
+        return progress_fields(dict(file_bytes=self.file_bytes,file_total=self.file_total,files=self.files,skipped=self.skipped,total_files=self.total_files))['file_progress_percent']
 
-    @computed_field(description='Album completion by downloaded plus skipped files, 0–100; null when the album total is unknown')
+    @computed_field(description='Album completion, 0–100; mirrors file progress for confirmed single-file jobs, otherwise uses handled file counts')
     @property
     def album_progress_percent(self) -> float | None:
-        from app.core.progress import percentage
-        return percentage(self.files + self.skipped, self.total_files)
+        from app.core.progress import progress_fields
+        return progress_fields(dict(file_bytes=self.file_bytes,file_total=self.file_total,files=self.files,skipped=self.skipped,total_files=self.total_files))['album_progress_percent']
 
 class DestinationView(DestinationCreate):
     id: str

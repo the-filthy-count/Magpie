@@ -10,13 +10,14 @@ export default function JobCard({
   action: (p: string, m?: string) => Promise<void>;
 }) {
   const [details, setDetails] = useState(false);
-  const pct =
-    j.file_total && j.file_bytes != null
-      ? Math.min(100, (j.file_bytes / j.file_total) * 100)
-      : null;
   const handled = j.files + j.skipped;
-  const albumPct = j.total_files && j.total_files >= handled
-    ? (handled / j.total_files) * 100 : null;
+  const measuredFile = j.file_total && j.file_bytes != null
+    ? Math.min(100, (j.file_bytes / j.file_total) * 100) : null;
+  const singleFile = j.total_files === 1;
+  const shared = handled === 1 ? 100 : handled === 0 ? measuredFile : null;
+  const pct = j.file_progress_percent !== undefined ? j.file_progress_percent : singleFile ? shared : measuredFile;
+  const albumPct = j.album_progress_percent !== undefined ? j.album_progress_percent : singleFile ? shared
+    : j.total_files && j.total_files >= handled ? (handled / j.total_files) * 100 : null;
   return (
     <article className={"job-card " + j.status}>
       <div className={"site-icon " + (j.status === "completed" ? "done" : "")}>

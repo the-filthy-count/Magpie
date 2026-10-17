@@ -37,6 +37,8 @@ export type Job = {
   status: string;
   files: number;
   total_files?: number | null;
+  file_progress_percent?: number | null;
+  album_progress_percent?: number | null;
   skipped: number;
   bytes: number;
   speed: number | null;
