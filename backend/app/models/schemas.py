@@ -1,5 +1,5 @@
 from typing import Literal
-from pydantic import BaseModel, Field, ConfigDict, field_validator
+from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
 from app.core.security import safe_template
 
 class Strict(BaseModel):
@@ -12,7 +12,19 @@ class PasswordChange(Credentials):
     current_password: str = Field(max_length=256)
 class DownloadCreate(Strict):
     url: str = Field(min_length=8, max_length=8192)
-    destination_id: str
+    destination_id: str | None = Field(default=None, min_length=1, max_length=128)
+    category: str | None = Field(default=None, min_length=1, max_length=60)
+
+    @model_validator(mode='after')
+    def destination_selector(self):
+        if (self.destination_id is None) == (self.category is None):
+            raise ValueError('Provide exactly one of destination_id or category')
+        if self.category is not None:
+            self.category = self.category.strip()
+            if not self.category:
+                raise ValueError('Category cannot be blank')
+        return self
+
 class DestinationCreate(Strict):
     name: str = Field(min_length=1, max_length=60)
     path: str = Field(max_length=1024)

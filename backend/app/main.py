@@ -308,7 +308,16 @@ def create_app(config_dir=None, roots=None, start_queue=True):
         ident = uuid.uuid4().hex
         with store.db() as db:
             db.execute('BEGIN IMMEDIATE')
-            row = db.execute('SELECT * FROM destinations WHERE id=?', (body.destination_id,)).fetchone()
+            if body.category is not None:
+                matches = [dict(d) for d in db.execute('SELECT * FROM destinations')
+                           if d['name'].strip().casefold() == body.category.casefold()]
+                if not matches:
+                    raise HTTPException(404, 'No destination matches that category label')
+                if len(matches) > 1:
+                    raise HTTPException(409, 'Category label is ambiguous; use destination_id or give destinations unique labels')
+                row = matches[0]
+            else:
+                row = db.execute('SELECT * FROM destinations WHERE id=?', (body.destination_id,)).fetchone()
             dest = destination(dict(row) if row else None)
             if not dest['writable']:
                 raise HTTPException(400, 'Destination is not writable')

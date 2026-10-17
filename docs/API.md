@@ -22,7 +22,7 @@ curl "$MAGPIE_URL/api/destinations" \
 curl "$MAGPIE_URL/api/downloads" \
   -H "Authorization: Bearer $MAGPIE_TOKEN" \
   -H 'Content-Type: application/json' \
-  --data '{"url":"https://example.com/gallery","destination_id":"DESTINATION_ID"}'
+  --data '{"url":"https://example.com/gallery","category":"Pictures"}'
 
 # Poll at most once per second until completed, failed, cancelled or interrupted
 curl "$MAGPIE_URL/api/downloads/JOB_ID" \
@@ -36,6 +36,17 @@ curl -N "$MAGPIE_URL/api/events" \
 `POST /api/downloads` returns 201 (accepted into the persistent queue), 409 for an
 active duplicate, 400 for invalid/unsafe URLs, or 404 for a missing destination.
 The queue continues independently of connected clients.
+
+## Choose a destination by label
+
+Send `"category": "Pictures"` to select the destination labelled **Pictures**.
+Matching ignores case and surrounding whitespace. The label must identify exactly
+one configured destination. Existing `"destination_id": "DESTINATION_ID"` requests
+continue to work. Supply exactly one of `category` or `destination_id` (422 if both
+or neither are supplied). Unknown categories return 404; ambiguous labels return
+409. Unwritable destinations return 400. No paths or directories are created from
+category text. The chosen destination is saved with the job, so later renaming the
+label does not redirect queued jobs or change their archive.
 
 ## Progress
 
