@@ -9,7 +9,7 @@ export default function ApiSettings({notify}:{notify:(message:string)=>void}) {
   return <>
     <section className="settings-card">
       <h2><KeyRound size={20} /> App connections</h2>
-      <p>Give each app its own API token. Apps can submit galleries, read destinations and download progress, and cancel or retry jobs. Tokens can view and control all instance downloads. They cannot change settings, manage cookies or delete history. Changing the administrator password revokes all tokens.</p>
+      <p>Give each app its own API token. Apps can submit galleries, read destinations and download progress, and cancel or retry jobs. Tokens can view and control all instance downloads. They can delete finished history entries, but cannot change settings or manage cookies. Downloaded media and archives are kept. Changing the administrator password revokes all tokens.</p>
       <form className="settings-form" onSubmit={async e=>{
         e.preventDefault(); setBusy(true); setError(""); setSecret("");
         try { const data = await api<Token & {token:string}>("/tokens","POST",{name,expires_days:neverExpires ? null : days}); setSecret(data.token); setName(""); await load(); }
@@ -30,7 +30,7 @@ export default function ApiSettings({notify}:{notify:(message:string)=>void}) {
       <p>Optional filename labels: send <code>custom_fields</code> as a named object of text values, plus <code>filename_position</code> set to <code>start</code> or <code>end</code>. Values are joined in the order supplied; end labels appear before the extension. Values are retained in history and API responses.</p>
       <p>Current file percentage: <code>file_progress_percent</code>. Album percentage: <code>album_progress_percent</code>. These range from 0–100, or null when unknown. File progress uses bytes; album progress counts downloaded and skipped files. Current file: <code>current_filename</code>, <code>file_bytes</code>, <code>file_total</code>, <code>speed</code>. Gallery: <code>files</code>, <code>skipped</code>, <code>total_files</code>. Totals are null when unknown; Bunkr album totals are supported. Overall progress is (files + skipped) / total_files.</p>
       <p>Live events: <code>update</code> contains a <code>downloads</code> array with the latest 200 jobs and their progress; <code>expired</code> closes the connection when the token expires or is revoked. Fetch any older job by ID. Browser EventSource cannot attach Bearer headers; use a streaming HTTP client or fetch.</p>
-      <p><code>POST /api/downloads/&#123;id&#125;/cancel</code> and <code>POST /api/downloads/&#123;id&#125;/retry</code> control a job. Authenticated API schema: <code>GET /api/openapi.json</code>. Browser cross-origin access is restricted; connect from your app’s server.</p>
+      <p><code>POST /api/downloads/&#123;id&#125;/cancel</code> and <code>POST /api/downloads/&#123;id&#125;/retry</code> control a job. Use <code>DELETE /api/downloads/&#123;id&#125;</code> to remove a finished history entry, or <code>DELETE /api/downloads</code> to clear finished history. Queued/downloading jobs, media and archives are kept. Authenticated API schema: <code>GET /api/openapi.json</code>. Browser cross-origin access is restricted; connect from your app’s server.</p>
     </section>
   </>;
 }

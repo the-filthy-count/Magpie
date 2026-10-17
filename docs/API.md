@@ -96,11 +96,12 @@ Tokens may access:
 - `POST /api/downloads`
 - `GET /api/downloads` and `GET /api/downloads/{id}`
 - `POST /api/downloads/{id}/cancel` and `POST /api/downloads/{id}/retry`
+- `DELETE /api/downloads/{id}` and `DELETE /api/downloads` (finished history only)
 - `GET /api/events`, `/api/version`, `/api/openapi.json`
 
 Tokens may see and control all instance downloads, including jobs from other
-apps. They cannot change settings, access cookies, browse folders, manage tokens,
-or delete history. Invalid/expired/revoked credentials return 401; actions outside
+apps. They can delete finished history. They cannot change settings, access cookies,
+browse folders or manage tokens. Invalid/expired/revoked credentials return 401; actions outside
 the token's permissions return 403. Errors use `{"error":{"code":"...","message":"..."}}`.
 
 Token management is administrator-session-only: `GET /api/tokens`,
@@ -146,3 +147,22 @@ in history and retained by retries/restarts. They do not override extractor
 metadata, alter directory templates or change the archive identity. Sending the
 same album to the same destination with different custom labels still skips
 archived media; it does not create another copy or rename existing files.
+
+
+## Delete history
+
+Existing API tokens can delete terminal jobs: completed, failed, cancelled or
+interrupted. Removing one entry returns 200 with `{"ok":true}`; active jobs return
+409 and unknown IDs return 404. Clearing all history returns 200 and leaves queued
+and downloading jobs untouched. Downloaded files and archive databases are never
+deleted. Bearer requests do not require a CSRF token.
+
+```sh
+# Delete one finished history entry
+curl -X DELETE "$MAGPIE_URL/api/downloads/JOB_ID" \
+  -H "Authorization: Bearer $MAGPIE_TOKEN"
+
+# Clear all finished history, keeping active jobs
+curl -X DELETE "$MAGPIE_URL/api/downloads" \
+  -H "Authorization: Bearer $MAGPIE_TOKEN"
+```

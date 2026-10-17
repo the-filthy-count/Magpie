@@ -118,9 +118,9 @@ def create_app(config_dir=None, roots=None, start_queue=True):
             if not token_row:
                 raise HTTPException(401, 'API token is invalid, expired or revoked')
             path, method = request.url.path, request.method
-            allowed = (method == 'GET' and (path in ('/api/destinations', '/api/downloads', '/api/events', '/api/version', '/api/openapi.json') or re.fullmatch(r'/api/downloads/[a-f0-9]{32}', path))) or (method == 'POST' and (path == '/api/downloads' or re.fullmatch(r'/api/downloads/[a-f0-9]{32}/(cancel|retry)', path)))
+            allowed = (method == 'GET' and (path in ('/api/destinations', '/api/downloads', '/api/events', '/api/version', '/api/openapi.json') or re.fullmatch(r'/api/downloads/[a-f0-9]{32}', path))) or (method == 'POST' and (path == '/api/downloads' or re.fullmatch(r'/api/downloads/[a-f0-9]{32}/(cancel|retry)', path))) or (method == 'DELETE' and (path == '/api/downloads' or re.fullmatch(r'/api/downloads/[a-f0-9]{32}', path)))
             if not allowed:
-                raise HTTPException(403, 'API tokens can only submit, monitor, cancel or retry downloads and read destinations')
+                raise HTTPException(403, 'API tokens can submit, monitor, cancel or retry downloads, delete finished history and read destinations')
             return {'api_token': token_row['id'], 'token': digest}
         token = request.cookies.get('magpie_session', '')
         hashed = hashlib.sha256(token.encode()).hexdigest()
@@ -492,7 +492,7 @@ def create_app(config_dir=None, roots=None, start_queue=True):
                     continue
                 if path in ('/api/health', '/api/auth/setup', '/api/auth/login', '/api/auth/status'):
                     continue
-                allowed = app_access and (method == 'get' or (method == 'post' and (path == '/api/downloads' or path.endswith(('/cancel', '/retry')))))
+                allowed = app_access and (method == 'get' or (method == 'post' and (path == '/api/downloads' or path.endswith(('/cancel', '/retry')))) or (method == 'delete' and (path == '/api/downloads' or path == '/api/downloads/{ident}')))
                 operation['security'] = [{'AdminSession': []}] + ([{'AppToken': []}] if allowed else [])
         return schema
     # SPA fallback must not hide unknown API endpoints.

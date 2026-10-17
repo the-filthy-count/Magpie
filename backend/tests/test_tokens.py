@@ -33,7 +33,7 @@ def test_token_download_workflow_and_scope(admin,destination):
     for path in ('/api/settings','/api/cookies','/api/tokens','/api/roots','/api/folders','/api/auth/sessions'):
         assert admin.get(path,headers=auth).status_code==403
     assert admin.post('/api/tokens',headers=auth,json={'name':'bad'}).status_code==403
-    assert admin.delete('/api/downloads/'+ident,headers=auth).status_code==403
+    assert admin.delete('/api/downloads/'+ident,headers=auth).status_code==409
     assert admin.post('/api/downloads',headers=auth,json={'url':'http://127.0.0.1/file','destination_id':destination['id']}).status_code==400
 
 def test_expiration_revocation_and_persistence(admin):
