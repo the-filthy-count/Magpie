@@ -1,6 +1,7 @@
 import re
+import json
 from typing import Literal
-from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator
+from pydantic import BaseModel, Field, ConfigDict, field_validator, model_validator, computed_field
 from app.core.security import safe_template
 
 class Strict(BaseModel):
@@ -15,6 +16,22 @@ class DownloadCreate(Strict):
     url: str = Field(min_length=8, max_length=8192)
     destination_id: str | None = Field(default=None, min_length=1, max_length=128)
     category: str | None = Field(default=None, min_length=1, max_length=60)
+
+    custom_fields: dict[str, str] = Field(default_factory=dict, max_length=10)
+    filename_position: Literal['start','end'] = 'start'
+
+    @field_validator('custom_fields')
+    @classmethod
+    def custom_fields_valid(cls, fields):
+        cleaned={}
+        for key,value in fields.items():
+            if not re.fullmatch(r'[A-Za-z][A-Za-z0-9_ -]{0,39}',key):
+                raise ValueError('Custom field names must start with a letter and use at most 40 letters, numbers, spaces, underscores or hyphens')
+            value=value.strip()
+            if not value or len(value)>100:
+                raise ValueError('Custom field values must contain 1–100 characters')
+            cleaned[key]=value
+        return cleaned
 
     @model_validator(mode='after')
     def destination_selector(self):
@@ -157,6 +174,26 @@ class JobView(BaseModel):
     file_total: int | None
     error: str | None
     attempts: int
+    custom_fields: dict[str,str] = Field(default_factory=dict)
+    filename_position: Literal['start','end'] = 'start'
+
+    @field_validator('custom_fields',mode='before')
+    @classmethod
+    def custom_fields_json(cls,value):
+        return json.loads(value) if isinstance(value,str) else value
+
+    @computed_field(description='Current file completion from measured bytes, 0–100; null when unknown or no active file')
+    @property
+    def file_progress_percent(self) -> float | None:
+        from app.core.progress import percentage
+        return percentage(self.file_bytes, self.file_total)
+
+    @computed_field(description='Album completion by downloaded plus skipped files, 0–100; null when the album total is unknown')
+    @property
+    def album_progress_percent(self) -> float | None:
+        from app.core.progress import percentage
+        return percentage(self.files + self.skipped, self.total_files)
+
 class DestinationView(DestinationCreate):
     id: str
     accessible: bool

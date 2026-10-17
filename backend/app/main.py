@@ -343,8 +343,8 @@ def create_app(config_dir=None, roots=None, start_queue=True):
                 raise HTTPException(429, 'Queue is full')
             if db.execute("SELECT 1 FROM jobs WHERE url=? AND destination_id=? AND status IN ('queued','downloading')", (body.url, dest['id'])).fetchone():
                 raise HTTPException(409, 'This URL is already queued for that destination')
-            db.execute('INSERT INTO jobs (id,url,website,destination_id,destination_name,destination_path,created_at,organisation_override,archive_id) VALUES (?,?,?,?,?,?,?,?,?)',
-                       (ident, body.url, urlsplit(body.url).hostname.lower(), dest['id'], dest['name'], dest['path'], now(), dest['organisation'], dict(row).get('archive_id') or dest['id']))
+            db.execute('INSERT INTO jobs (id,url,website,destination_id,destination_name,destination_path,created_at,organisation_override,archive_id,custom_fields,filename_position) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+                       (ident, body.url, urlsplit(body.url).hostname.lower(), dest['id'], dest['name'], dest['path'], now(), dest['organisation'], dict(row).get('archive_id') or dest['id'], json.dumps(body.custom_fields), body.filename_position))
         return get_job(ident)
     @app.get('/api/downloads', response_model=list[JobView], dependencies=[Depends(auth)])
     def downloads(status: str = '', website: str = '', destination_id: str = '', q: str = '', since: str = '', until: str = '', limit: int = 200, offset: int = 0):
@@ -468,7 +468,9 @@ def create_app(config_dir=None, roots=None, start_queue=True):
                 if not valid:
                     yield 'event: expired\ndata: {}\n\n'
                     break
-                current = {'downloads': store.all('SELECT id,status,files,skipped,total_files,bytes,speed,current_filename,file_bytes,file_total,error FROM jobs ORDER BY seq DESC LIMIT 200')}
+                current = {'downloads': store.all('SELECT id,status,files,skipped,total_files,bytes,speed,current_filename,file_bytes,file_total,error,custom_fields,filename_position FROM jobs ORDER BY seq DESC LIMIT 200')}
+                from app.core.progress import progress_fields
+                current['downloads'] = [{**row, 'custom_fields': json.loads(row['custom_fields']), **progress_fields(row)} for row in current['downloads']]
                 encoded = json.dumps(current)
                 if encoded != previous:
                     yield 'event: update\ndata: ' + encoded + '\n\n'

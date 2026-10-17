@@ -53,6 +53,8 @@ label does not redirect queued jobs or change their archive.
 
 | Field | Meaning |
 | --- | --- |
+| `file_progress_percent` | Current-file percentage (0–100), rounded to two decimals; null without a valid measured total |
+| `album_progress_percent` | Album percentage (0–100) by downloaded + skipped files; null without a valid known total |
 | `status` | queued, downloading, completed, failed, cancelled, interrupted |
 | `current_filename` | Current file, when available |
 | `file_bytes`, `file_total` | Current file bytes and measured total; nullable |
@@ -60,6 +62,12 @@ label does not redirect queued jobs or change their archive.
 | `bytes` | Cumulative transferred/finalized bytes for this attempt |
 | `files`, `skipped` | Successfully downloaded and skipped files this attempt |
 | `total_files` | Known gallery size; null when unknown (Bunkr albums supported) |
+
+These explicit percentage fields appear in individual/list REST responses and SSE
+updates. Album progress is file-count based, not byte-weighted across the album.
+An unknown, zero or inconsistent total yields null; completion status never
+fabricates a total. After a file finishes, its byte counters clear and its file
+percentage becomes null until another measurable file starts.
 
 Current file fraction: `file_bytes / file_total` only when the total is positive.
 Gallery fraction: `(files + skipped) / total_files` only when the total is known
@@ -71,7 +79,7 @@ SSE emits an initial `update`, then changed snapshots at most once per second:
 
 ```text
 event: update
-data: {"downloads":[{"id":"...","status":"downloading","files":6,"skipped":2,"total_files":20,"bytes":123456,"speed":1024,"current_filename":"image.jpg","file_bytes":50,"file_total":100,"error":null}]}
+data: {"downloads":[{"id":"...","status":"downloading","files":6,"skipped":2,"total_files":20,"bytes":123456,"speed":1024,"current_filename":"image.jpg","file_bytes":50,"file_total":100,"file_progress_percent":50.0,"album_progress_percent":40.0,"error":null}]}
 ```
 
 Snapshots include the latest 200 jobs, not the entire history. Poll a specific ID
@@ -102,3 +110,39 @@ Omitting `expires_days` keeps the default 90-day expiry; `null` means no expiry.
 Non-expiring tokens still count toward the 20-active-token limit and can be revoked
 manually or by changing the administrator password.
 The authenticated OpenAPI schema documents request and response models.
+
+## Custom filename fields
+
+Optional `custom_fields` is an object containing up to 10 named text values.
+`filename_position` is `"start"` (default) or `"end"`. Values are joined with
+` - ` in the JSON order supplied; field names are descriptive labels, not part
+of the resulting filename. The original/native filename and extension remain.
+End-position values go before the extension. For example:
+
+```sh
+curl "$MAGPIE_URL/api/downloads" \
+  -H "Authorization: Bearer $MAGPIE_TOKEN" \
+  -H 'Content-Type: application/json' \
+  --data '{
+    "url": "https://example.com/gallery",
+    "category": "Pictures",
+    "custom_fields": {"creator": "Alice", "collection": "Nature"},
+    "filename_position": "end"
+  }'
+```
+
+`original.jpg` becomes `original - Alice - Nature.jpg`; choosing `"start"`
+produces `Alice - Nature - original.jpg`. Flat-with-gallery-name mode combines
+both, for example `Summer gallery - original - Alice - Nature.jpg`.
+
+Names must start with a letter and contain at most 40 ASCII letters, numbers,
+spaces, underscores or hyphens. Values must be non-empty strings of up to 100
+characters. Values are literal, never executable templates or paths. Unsafe
+filename characters are replaced, and long names shortened with a stable hash.
+The selected destination remains the filesystem boundary.
+
+Fields and position are returned in REST job responses and SSE updates, stored
+in history and retained by retries/restarts. They do not override extractor
+metadata, alter directory templates or change the archive identity. Sending the
+same album to the same destination with different custom labels still skips
+archived media; it does not create another copy or rename existing files.

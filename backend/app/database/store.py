@@ -42,6 +42,11 @@ class Store:
             ''')
             if 'total_files' not in {row[1] for row in db.execute('PRAGMA table_info(jobs)')}:
                 db.execute('ALTER TABLE jobs ADD COLUMN total_files INTEGER')
+            columns={row[1] for row in db.execute('PRAGMA table_info(jobs)')}
+            if 'custom_fields' not in columns:
+                db.execute("ALTER TABLE jobs ADD COLUMN custom_fields TEXT NOT NULL DEFAULT '{}'")
+            if 'filename_position' not in columns:
+                db.execute("ALTER TABLE jobs ADD COLUMN filename_position TEXT NOT NULL DEFAULT 'start'")
             for table in ('destinations','jobs'):
                 if 'archive_id' not in {row[1] for row in db.execute(f'PRAGMA table_info({table})')}:
                     db.execute(f'ALTER TABLE {table} ADD COLUMN archive_id TEXT')

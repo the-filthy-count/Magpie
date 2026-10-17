@@ -180,3 +180,14 @@ def test_real_video_playlist_selection(tmp_path,media,monkeypatch,mode,count):
     root,events=execute(tmp_path,media,merge=True,settings={'playlist':mode,'organisation':'flat'})
     assert len(list(root.glob('*.mp4')))==count
     assert any(e.get('files')==count for e in events)
+
+
+@pytest.mark.parametrize('position',['start','end'])
+def test_real_video_custom_fields(tmp_path,media,monkeypatch,position):
+    script=SCRIPT.replace('sys.exit(run(spec))',f"spec['custom_fields']={{'creator':'Alice','tag':'Nature'}}\nspec['filename_position']={position!r}\nsys.exit(run(spec))")
+    monkeypatch.setitem(globals(),'SCRIPT',script)
+    root,events=execute(tmp_path,media,merge=True,settings={'organisation':'flat'})
+    files=list(root.glob('*.mp4'));assert len(files)==1
+    if position=='start':assert files[0].name.startswith('Alice - Nature - ')
+    else:assert files[0].name.endswith(' - Alice - Nature.mp4')
+    assert any(e.get('files')==1 for e in events)

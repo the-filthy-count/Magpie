@@ -81,7 +81,7 @@ class Queue:
                            if row['website'] == c['website'] or row['website'].endswith('.' + c['website'])), None)
             from app.downloads.options import effective_settings
             settings = effective_settings(settings, row['website'], row.get('organisation_override'))
-            spec = dict(url=row['url'], destination_path=path, archive=str(archive), cookie=cookie, settings=settings)
+            spec = dict(url=row['url'], destination_path=path, archive=str(archive), cookie=cookie, settings=settings, custom_fields=json.loads(row.get('custom_fields') or '{}'), filename_position=row.get('filename_position') or 'start')
             env = {k: v for k, v in os.environ.items() if k.upper() not in
                    ('HTTP_PROXY','HTTPS_PROXY','ALL_PROXY','NO_PROXY','PYTHONPATH','PYTHONSTARTUP')}
             env['PYTHONDONTWRITEBYTECODE'] = '1'

@@ -73,3 +73,35 @@ def video_options(settings):
                 subtitleslangs=settings.get('subtitle_languages',['en']), subtitlesformat='vtt/best',
                 sleep_interval_requests=settings.get('advanced',{}).get('sleep-request') or None,
                 continuedl=True, nopart=False)
+
+
+def custom_filename(native, fields, position):
+    """Literal labels only: never expose custom values as template expressions."""
+    values=[]
+    for value in fields.values():
+        value=re.sub(r'[\x00-\x1f\x7f/\\:<>"|?*]+','_',value).strip(' .')
+        if value:values.append(value)
+    if not values:return native
+    from pathlib import Path
+    labels=' - '.join(values)
+    # gallery-dl uses a trailing dot while yt-dlp fills the extension.
+    suffix='.' if native.endswith('.') else Path(native).suffix
+    if position=='end':
+        stem=native[:-len(suffix)] if suffix else native
+        combined=stem+' - '+labels+suffix
+    else:
+        combined=labels+' - '+native
+    if len(combined.encode())>240:
+        digest=hashlib.sha256(combined.encode()).hexdigest()[:12]
+        combined=combined.encode()[:195].decode('utf-8','ignore').rstrip(' .')+'-'+digest+suffix[:20]
+    return combined
+
+
+def install_custom_fields(fields, position):
+    if not fields:return
+    from gallery_dl.path import PathFormat
+    original=PathFormat.build_filename
+    def filename(self,metadata):
+        native=original(self,metadata)
+        return self.clean_path(self.clean_segment(custom_filename(native,fields,position)))
+    PathFormat.build_filename=filename

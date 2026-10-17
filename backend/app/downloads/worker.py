@@ -37,6 +37,8 @@ def run(spec):
         extractor['directory'] = [safe_template(x) for x in settings['directory']]
     if settings['organisation']=='flat_gallery':
         install_gallery_prefix()
+    from app.downloads.options import install_custom_fields
+    install_custom_fields(spec.get('custom_fields', {}), spec.get('filename_position', 'start'))
     # Organised mode uses the extractor's native metadata-aware layout.
     # Native layouts avoid imposing absent creator/gallery metadata globally.
     if spec.get('cookie'):
