@@ -92,13 +92,13 @@ class DestinationView(DestinationCreate):
 
 class ApiTokenCreate(Strict):
     name: str = Field(min_length=1, max_length=60)
-    expires_days: int = Field(default=90, ge=1, le=365)
+    expires_days: int | None = Field(default=90, ge=1, le=365)
 
 class ApiTokenView(BaseModel):
     id: str
     name: str
     created_at: str
-    expires_at: float
+    expires_at: float | None
 
 class ApiTokenIssued(ApiTokenView):
     token: str

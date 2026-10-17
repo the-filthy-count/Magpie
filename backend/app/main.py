@@ -114,7 +114,7 @@ def create_app(config_dir=None, roots=None, start_queue=True):
             if scheme.lower() != 'bearer' or not credential or len(credential) > 256:
                 raise HTTPException(401, 'A valid Bearer API token is required')
             digest = hashlib.sha256(credential.encode()).hexdigest()
-            token_row = store.one('SELECT * FROM api_tokens WHERE digest=? AND expires_at>?', (digest, time.time()))
+            token_row = store.one('SELECT * FROM api_tokens WHERE digest=? AND (expires_at=0 OR expires_at>?)', (digest, time.time()))
             if not token_row:
                 raise HTTPException(401, 'API token is invalid, expired or revoked')
             path, method = request.url.path, request.method
@@ -132,20 +132,20 @@ def create_app(config_dir=None, roots=None, start_queue=True):
         return session
     @app.get('/api/tokens', response_model=list[ApiTokenView], dependencies=[Depends(auth)])
     def list_tokens():
-        return store.all('SELECT id,name,created_at,expires_at FROM api_tokens ORDER BY created_at DESC')
+        return store.all('SELECT id,name,created_at,NULLIF(expires_at,0) AS expires_at FROM api_tokens ORDER BY created_at DESC')
     @app.post('/api/tokens', response_model=ApiTokenIssued, status_code=201, dependencies=[Depends(auth)])
     def create_token(body: ApiTokenCreate):
         name = body.name.strip()
         if not name:
             raise HTTPException(400, 'Token name cannot be blank')
         ident, secret = uuid.uuid4().hex, 'magpie_' + secrets.token_urlsafe(32)
-        created, expires = now(), time.time() + body.expires_days * 86400
+        created, expires = now(), (time.time() + body.expires_days * 86400 if body.expires_days is not None else 0)
         with store.db() as db:
             db.execute('BEGIN IMMEDIATE')
-            if db.execute('SELECT COUNT(*) FROM api_tokens WHERE expires_at>?', (time.time(),)).fetchone()[0] >= 20:
+            if db.execute('SELECT COUNT(*) FROM api_tokens WHERE expires_at=0 OR expires_at>?', (time.time(),)).fetchone()[0] >= 20:
                 raise HTTPException(409, 'Revoke an active token before creating another (limit 20)')
             db.execute('INSERT INTO api_tokens VALUES (?,?,?,?,?)', (ident, name, hashlib.sha256(secret.encode()).hexdigest(), created, expires))
-        return {'id': ident, 'name': name, 'created_at': created, 'expires_at': expires, 'token': secret}
+        return {'id': ident, 'name': name, 'created_at': created, 'expires_at': expires or None, 'token': secret}
     @app.delete('/api/tokens/{ident}', dependencies=[Depends(auth)])
     def revoke_token(ident: str):
         if not store.execute('DELETE FROM api_tokens WHERE id=?', (ident,)):
@@ -446,7 +446,7 @@ def create_app(config_dir=None, roots=None, start_queue=True):
         async def stream():
             previous = None
             while not await request.is_disconnected():
-                valid = (store.one('SELECT 1 FROM api_tokens WHERE id=? AND expires_at>?', (session['api_token'], time.time())) if 'api_token' in session else store.one('SELECT 1 FROM sessions WHERE token=? AND expires>?', (session['token'], time.time())))
+                valid = (store.one('SELECT 1 FROM api_tokens WHERE id=? AND (expires_at=0 OR expires_at>?)', (session['api_token'], time.time())) if 'api_token' in session else store.one('SELECT 1 FROM sessions WHERE token=? AND expires>?', (session['token'], time.time())))
                 if not valid:
                     yield 'event: expired\ndata: {}\n\n'
                     break

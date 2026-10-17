@@ -1,7 +1,8 @@
 # App API
 
 Create a named token under **Settings → API**. Copy it immediately: Magpie stores
-only its SHA-256 hash. Tokens expire after 1–365 days (default 90), persist across
+only its SHA-256 hash. Tokens expire after 1–365 days (default 90), or never expire when you select
+**Never expires** or send `"expires_days": null`. They persist across
 restarts, and can be revoked individually. Changing the administrator password
 revokes every app token and session. Limit: 20 active tokens.
 
@@ -97,4 +98,7 @@ the token's permissions return 403. Errors use `{"error":{"code":"...","message"
 Token management is administrator-session-only: `GET /api/tokens`,
 `POST /api/tokens` with `{"name":"My app","expires_days":90}`, and
 `DELETE /api/tokens/{id}`. Create/delete requests require `X-CSRF-Token`.
+Omitting `expires_days` keeps the default 90-day expiry; `null` means no expiry.
+Non-expiring tokens still count toward the 20-active-token limit and can be revoked
+manually or by changing the administrator password.
 The authenticated OpenAPI schema documents request and response models.

@@ -2108,3 +2108,5 @@ button.pluck:disabled { opacity:1; background:#005454; color:#F1F6FC; border-col
 .help-tooltip-content::after { content:""; position:absolute; bottom:100%; right:0; width:100%; height:12px; }
 
 img.avatar { display:block; object-fit:cover; border:0; background:transparent; flex-shrink:0; }
+.settings-form label.never-expire-option { display:flex; flex-direction:row; align-items:center; gap:10px; }
+.settings-form .never-expire-option input { width:16px; height:16px; margin:0; accent-color:#005454; }

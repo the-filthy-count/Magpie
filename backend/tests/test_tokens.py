@@ -82,3 +82,18 @@ def test_admin_csrf_and_password_change_revokes_tokens(admin):
     assert admin.get('/api/openapi.json',headers={'Authorization':'Bearer '+token['token']}).json()['components']['securitySchemes']['AppToken']['scheme']=='bearer'
     assert admin.post('/api/auth/password',json={'current_password':'correct horse battery staple','password':'replacement password long enough'}).status_code==200
     assert admin.get('/api/downloads',headers={'Authorization':'Bearer '+token['token']}).status_code==401
+
+
+def test_non_expiring_token_remains_valid_and_revocable(admin,monkeypatch):
+    response=admin.post('/api/tokens',json={'name':'Permanent client','expires_days':None})
+    assert response.status_code==201,response.text
+    token=response.json()
+    assert token['expires_at'] is None
+    assert next(t for t in admin.get('/api/tokens').json() if t['id']==token['id'])['expires_at'] is None
+    auth={'Authorization':'Bearer '+token['token']}
+    future=time.time()+86400*365*20
+    with monkeypatch.context() as patch:
+        patch.setattr('app.main.time.time',lambda:future)
+        assert admin.get('/api/downloads',headers=auth).status_code==200
+    assert admin.delete('/api/tokens/'+token['id']).status_code==200
+    assert admin.get('/api/downloads',headers=auth).status_code==401

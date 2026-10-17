@@ -23,3 +23,21 @@ it("creates a named token, shows it once and revokes it",async()=>{
   await screen.findByText("No API tokens yet.");
   expect(api).toHaveBeenCalledWith("/tokens/test","DELETE");
 });
+
+it("can create a token that never expires",async()=>{
+  let issued=false;
+  vi.mocked(api).mockImplementation(async(_path,method)=>{
+    const token={id:"permanent",name:"Permanent client",created_at:"2026-10-17",expires_at:null};
+    if(method==="POST"){issued=true;return {...token,token:"magpie_permanent"};}
+    return issued?[token]:[];
+  });
+  render(<ApiSettings notify={vi.fn()}/>);
+  await screen.findByText("No API tokens yet.");
+  fireEvent.change(screen.getByLabelText("App name"),{target:{value:"Permanent client"}});
+  fireEvent.click(screen.getByRole("checkbox",{name:"Never expires"}));
+  expect(screen.getByLabelText("Expires in (days)")).toBeDisabled();
+  fireEvent.click(screen.getByRole("button",{name:"Create token"}));
+  await screen.findByLabelText("New API token");
+  expect(api).toHaveBeenCalledWith("/tokens","POST",{name:"Permanent client",expires_days:null});
+  expect(screen.getByText("Never expires",{selector:"small"})).toBeVisible();
+});
