@@ -2100,3 +2100,9 @@ button.pluck:disabled { opacity:1; background:#005454; color:#F1F6FC; border-col
 .api-guide code { overflow-wrap:anywhere; }
 .api-guide ol { padding-left:22px; list-style:decimal; }
 .api-guide li { margin-bottom:10px; }
+
+.heading-actions { display:flex; align-items:center; gap:10px; flex-shrink:0; }
+.help-tooltip { position:relative; display:inline-flex; }
+.help-tooltip-content { position:absolute; right:0; top:calc(100% + 10px); z-index:70; width:min(320px,calc(100vw - 48px)); padding:13px 15px; border:1px solid #23516A; border-radius:10px; background:#002C46; color:#F1F6FC; font-size:12px; line-height:1.6; font-weight:400; letter-spacing:normal; text-align:left; box-shadow:0 10px 32px #00133033; }
+.help-tooltip-content::before { content:""; position:absolute; top:-6px; right:14px; width:10px; height:10px; background:#002C46; border-top:1px solid #23516A; border-left:1px solid #23516A; transform:rotate(45deg); }
+.help-tooltip-content::after { content:""; position:absolute; bottom:100%; right:0; width:100%; height:12px; }

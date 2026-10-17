@@ -1,3 +1,4 @@
+import HelpTooltip from "../components/HelpTooltip";
 import { useState, useEffect } from "react";
 import { Folder, Plus, ShieldCheck, Trash2, Image, Box, Star, Video, Film, Music, Headphones, Camera, Heart, Pencil, Save, X } from "lucide-react";
 import { api, Destination } from "../services/api";
@@ -48,6 +49,10 @@ export default function Destinations({
           </h1>
           <p>Choose where your finds land. Files stay yours, always.</p>
         </div>
+        <div className="heading-actions">
+          <HelpTooltip label="Destination storage information" icon={<ShieldCheck size={19} />}>
+            Destinations point to your NAS bind mounts. Removing a destination never deletes downloaded media.
+          </HelpTooltip>
         <button
           className="icon-button" title="Add destination" aria-label="Add destination"
           onClick={() => {
@@ -61,6 +66,7 @@ export default function Destinations({
         >
           <Plus size={18} />
         </button>
+        </div>
       </div>
       {adding && (
         <section className="settings-card">
@@ -221,13 +227,7 @@ export default function Destinations({
           text="Add a mounted directory to get started."
         />
       )}
-      <div className="info-note">
-        <ShieldCheck size={17} />
-        <p>
-          Destinations point to your NAS bind mounts. Removing a destination
-          never deletes downloaded media.
-        </p>
-      </div>
+
     </>
   );
 }
