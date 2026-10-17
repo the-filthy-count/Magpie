@@ -18,7 +18,7 @@ One non-failing warning is emitted by the installed Starlette test client about 
 
 Not certified by these checks:
 
-- Deployment on the user's physical UGREEN NAS: no NAS connection or NAS IP was supplied. Check its firmware/kernel Landlock support and configure real NAS paths and UID/GID before deployment.
+- Deployment on physical NAS or server hardware: these checks used the local development host. Verify the target host's firmware/kernel Landlock support and configure its storage paths and UID/GID before deployment.
 - ARM64 execution: the Dockerfile uses multi-architecture base images, but only AMD64 was built/run here.
 - Every gallery-dl extractor or authenticated website: sites have different cookie, API, video and rate-limit requirements. Video support was subsequently added through yt-dlp and bundled sandboxed media helpers; see the video integration validation below.
 - A native vector rendition of the supplied raster logo: SVG assets embed the original PNG losslessly. The supplied Bird font and illustration retain their original licensing.

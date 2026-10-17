@@ -2,17 +2,19 @@
   <img src="brand/brand.webp" alt="Logo" width="500">
 </p>
 
-**Find it. Fetch it. File it.** A self-hosted, single-container media downloader for your NAS. Paste a public gallery-dl-supported HTTP(S) link, pick a configured destination, and **Pluck**.
+**Find it. Fetch it. File it.**
+
+A self-hosted, single-container media downloader for your NAS. Paste a public gallery-dl-supported HTTP(S) link, pick a configured destination, and **Pluck**.
 
 Python 3.12+, FastAPI, gallery-dl 1.32.16, yt-dlp 2026.8.19, FFmpeg, SQLite, React, TypeScript, Vite and Tailwind. No external database, cloud service or separate queue service. The interface and authenticated API share port **9080**.
 
-## Deploy on a UGREEN DXP4800 Plus
+## Deploy with Docker Compose
 
-Use UGOS Pro's Docker application to create a Compose project, or use Docker Compose over SSH. The DXP4800 Plus uses AMD64. The Dockerfile also uses multi-architecture base images suitable for ARM64; ARM64 has not been exercised in this development environment.
+Use Docker Compose on a Linux server or a NAS with Docker support. You can create a Compose project through your platform's container manager or run the commands from a terminal. The published image targets Linux AMD64. The Dockerfile uses multi-architecture base images suitable for ARM64; ARM64 has not been tested.
 
 **Host requirement:** Linux 5.13 or later with Landlock enabled and available through Docker's seccomp profile. Workers refuse to download if kernel-enforced filesystem confinement cannot be installed. Some NAS firmware kernels disable Landlock even on recent hardware; verify before deployment. Do not disable this boundary to make an unsupported NAS kernel work. An updated NAS kernel/firmware or a supported Linux VM is needed in that case.
 
-1. Copy this project to a persistent shared folder, for example `/volume1/docker/magpie` (use the actual path shown by your NAS).
+1. Copy this project to a persistent shared folder, for example `/srv/magpie` (use a suitable path on your host).
 2. Copy `.env.example` to `.env`. Set `PUID` and `PGID` to the NAS account that owns your download directories (`id` over SSH shows them). These are **image build arguments**, so rebuild after changing them.
 3. Set `PICTURES_PATH`, `MODELS_PATH` and `OTHER_PATH` to existing absolute NAS paths. Set `MAGPIE_BIND_IP` to the NAS's LAN IP. Add that IP and your reverse proxy hostname to the comma-separated `MAGPIE_ALLOWED_HOSTS` list, keeping `127.0.0.1` for the health check. The default bind address is loopback.
 4. Prepare the config directory and give only the container user write access. Also ensure the chosen NAS account can write the three bind mounts. Example for a fresh installation:
@@ -24,8 +26,8 @@ Use UGOS Pro's Docker application to create a Compose project, or use Docker Com
    docker compose up -d --build
    ```
 
-   Create the download folders through UGOS's file manager first and set their ownership/ACLs for that account. Magpie runs non-root and deliberately does not chown NAS media directories.
-5. Read the one-time setup token with `docker compose exec magpie cat /config/setup-token`. Open `http://<NAS-IP>:9080`, enter that token, and create an administrator password of at least 12 characters. The token file is removed after successful setup. Never use the development QA password on your NAS.
+   Create the download folders using your host's file manager or terminal and set their ownership/ACLs for that account. Magpie runs non-root and deliberately does not chown NAS media directories.
+5. Read the one-time setup token with `docker compose exec magpie cat /config/setup-token`. Open `http://<NAS-IP>:9080`, enter that token, and create an administrator password of at least 12 characters. The token file is removed after successful setup. There is no default administrator password.
 6. In **Destinations**, add `Pictures → /downloads/pictures`, `Models → /downloads/models` and `Other → /downloads/other`. A write probe reports actual mount accessibility. Select the default destination.
 7. Paste a supported URL on **Downloads**, select its destination, and click **Pluck** (or press Enter).
 

@@ -483,8 +483,8 @@ def create_app(config_dir=None, roots=None, start_queue=True):
     def frontend(path: str):
         if path.startswith('api/'):
             raise HTTPException(404, 'Endpoint not found')
-        if path in ('logo.svg','favicon.svg','logo.png','bird.ttf') and (static/path).is_file():
-            return FileResponse(static/path)
+        if path in ('logo.svg','favicon.svg','logo.webp','id.webp','bird.ttf') and (static/path).is_file():
+            return FileResponse(static/path, media_type='image/webp' if path.endswith('.webp') else None)
         if (static/'index.html').is_file():
             return FileResponse(static/'index.html')
         raise HTTPException(503, 'Frontend build missing; build the Docker image or run Vite for development')

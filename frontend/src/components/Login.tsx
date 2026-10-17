@@ -15,7 +15,7 @@ export default function Login({
   return (
     <div className="login">
       <div className="login-card">
-        <img src="/logo.png" width="68" />
+        <img src="/logo.webp" width="68" />
         <h1>
           Welcome {setup ? "to" : "back to"} Magpie<span>.</span>
         </h1>

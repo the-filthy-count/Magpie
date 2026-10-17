@@ -40,7 +40,7 @@ try:
             break
         time.sleep(.2)
     assert job['status'] == 'completed', job.get('error') or job['status']
-    for path, signature in [('/', b'<div id="root">'),('/logo.png', b'\x89PNG\r\n\x1a\n'),('/bird.ttf', b'\x00\x01\x00\x00')]:
+    for path, signature in [('/', b'<div id="root">'),('/logo.webp', b'RIFF'),('/id.webp', b'RIFF'),('/bird.ttf', b'\x00\x01\x00\x00')]:
         with client.open(base+path) as response:
             assert signature in response.read(), 'Missing or unreadable asset: '+path
     print(json.dumps({key:job[key] for key in ('id','status','files','skipped','bytes')}))

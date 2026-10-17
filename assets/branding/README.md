@@ -1,6 +1,6 @@
 # Magpie brand assets
 
-The supplied `logo.png` is used unchanged in the application. `bird.ttf` is the supplied Bird identity font, self-hosted and used for the Magpie wordmark. UI text uses the device's readable sans-serif font.
+The supplied `logo.webp` is a lossless conversion of the supplied logo and is used in the application. `bird.ttf` is the supplied Bird identity font, self-hosted and used for the Magpie wordmark. UI text uses the device's readable sans-serif font.
 
 | Colour | Hex |
 | --- | --- |

@@ -89,7 +89,7 @@ export default function App() {
   if (!auth)
     return (
       <div className="loading">
-        <img src="/logo.png" width="64" />
+        <img src="/logo.webp" width="64" />
         <p>{error || "Waking up Magpie…"}</p>
       </div>
     );
@@ -116,7 +116,7 @@ export default function App() {
             setPage("downloads");
           }}
         >
-          <img src="/logo.png" />
+          <img src="/logo.webp" />
           <span>Magpie</span>
         </a>
         <div className="workspace-label">YOUR LITTLE COLLECTOR</div>
@@ -203,7 +203,7 @@ export default function App() {
                 <Sun size={17} />
               )}
             </button>
-            <span className="avatar">M</span>
+            <img className="avatar" src="/id.webp" alt="Administrator profile" width="28" height="28" />
           </div>
         </header>
         <div className="page-content">
@@ -308,7 +308,7 @@ export default function App() {
               </div>
               <footer className="page-footer">
                 <span>
-                  <img src="/logo.png" /> A little less saving for later. A
+                  <img src="/logo.webp" /> A little less saving for later. A
                   little more keeping forever.
                 </span>
                 <span>
