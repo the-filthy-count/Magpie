@@ -30,7 +30,8 @@ from app.core.security import destination_path, hash_password, verify_password, 
 from app.database.store import Store
 from app.downloads.queue import Queue, now
 from app.models.schemas import (Credentials, Login, PasswordChange, DownloadCreate,
-                               DestinationCreate, DestinationPatch, Settings, JobView, DestinationView)
+                               DestinationCreate, DestinationPatch, Settings, JobView, DestinationView,
+                               ApiTokenCreate, ApiTokenView, ApiTokenIssued)
 
 VERSION = '1.0.0'
 TERMINAL = ('completed', 'failed', 'cancelled', 'interrupted')
@@ -107,6 +108,20 @@ def create_app(config_dir=None, roots=None, start_queue=True):
     async def conflict(request, exc):
         return JSONResponse({'error': {'code': 'conflict', 'message': 'An entry with that path or website already exists'}}, 409)
     def auth(request: Request):
+        authorization = request.headers.get('authorization')
+        if authorization:
+            scheme, _, credential = authorization.partition(' ')
+            if scheme.lower() != 'bearer' or not credential or len(credential) > 256:
+                raise HTTPException(401, 'A valid Bearer API token is required')
+            digest = hashlib.sha256(credential.encode()).hexdigest()
+            token_row = store.one('SELECT * FROM api_tokens WHERE digest=? AND expires_at>?', (digest, time.time()))
+            if not token_row:
+                raise HTTPException(401, 'API token is invalid, expired or revoked')
+            path, method = request.url.path, request.method
+            allowed = (method == 'GET' and (path in ('/api/destinations', '/api/downloads', '/api/events', '/api/version', '/api/openapi.json') or re.fullmatch(r'/api/downloads/[a-f0-9]{32}', path))) or (method == 'POST' and (path == '/api/downloads' or re.fullmatch(r'/api/downloads/[a-f0-9]{32}/(cancel|retry)', path)))
+            if not allowed:
+                raise HTTPException(403, 'API tokens can only submit, monitor, cancel or retry downloads and read destinations')
+            return {'api_token': token_row['id'], 'token': digest}
         token = request.cookies.get('magpie_session', '')
         hashed = hashlib.sha256(token.encode()).hexdigest()
         session = store.one('SELECT * FROM sessions WHERE token=? AND expires>?', (hashed, time.time()))
@@ -115,6 +130,27 @@ def create_app(config_dir=None, roots=None, start_queue=True):
         if request.method not in ('GET', 'HEAD') and not secrets.compare_digest(request.headers.get('x-csrf-token', ''), session['csrf']):
             raise HTTPException(403, 'Session security token missing; refresh and try again')
         return session
+    @app.get('/api/tokens', response_model=list[ApiTokenView], dependencies=[Depends(auth)])
+    def list_tokens():
+        return store.all('SELECT id,name,created_at,expires_at FROM api_tokens ORDER BY created_at DESC')
+    @app.post('/api/tokens', response_model=ApiTokenIssued, status_code=201, dependencies=[Depends(auth)])
+    def create_token(body: ApiTokenCreate):
+        name = body.name.strip()
+        if not name:
+            raise HTTPException(400, 'Token name cannot be blank')
+        ident, secret = uuid.uuid4().hex, 'magpie_' + secrets.token_urlsafe(32)
+        created, expires = now(), time.time() + body.expires_days * 86400
+        with store.db() as db:
+            db.execute('BEGIN IMMEDIATE')
+            if db.execute('SELECT COUNT(*) FROM api_tokens WHERE expires_at>?', (time.time(),)).fetchone()[0] >= 20:
+                raise HTTPException(409, 'Revoke an active token before creating another (limit 20)')
+            db.execute('INSERT INTO api_tokens VALUES (?,?,?,?,?)', (ident, name, hashlib.sha256(secret.encode()).hexdigest(), created, expires))
+        return {'id': ident, 'name': name, 'created_at': created, 'expires_at': expires, 'token': secret}
+    @app.delete('/api/tokens/{ident}', dependencies=[Depends(auth)])
+    def revoke_token(ident: str):
+        if not store.execute('DELETE FROM api_tokens WHERE id=?', (ident,)):
+            raise HTTPException(404, 'API token not found')
+        return {'ok': True}
     def throttle(request):
         ip = request.client.host if request.client else 'unknown'
         bucket = attempts[ip]
@@ -169,6 +205,7 @@ def create_app(config_dir=None, roots=None, start_queue=True):
             raise HTTPException(403, 'Current password is incorrect')
         store.set('password', hash_password(body.password))
         store.execute('DELETE FROM sessions')
+        store.execute('DELETE FROM api_tokens')
         return {'ok': True}
     @app.get('/api/auth/sessions')
     def sessions(session=Depends(auth)):
@@ -400,13 +437,14 @@ def create_app(config_dir=None, roots=None, start_queue=True):
         async def stream():
             previous = None
             while not await request.is_disconnected():
-                if not store.one('SELECT 1 FROM sessions WHERE token=? AND expires>?', (session['token'], time.time())):
+                valid = (store.one('SELECT 1 FROM api_tokens WHERE id=? AND expires_at>?', (session['api_token'], time.time())) if 'api_token' in session else store.one('SELECT 1 FROM sessions WHERE token=? AND expires>?', (session['token'], time.time())))
+                if not valid:
                     yield 'event: expired\ndata: {}\n\n'
                     break
-                current = store.one('SELECT COUNT(*) AS n,COALESCE(MAX(seq),0) AS seq,COALESCE(SUM(files+bytes+skipped+cancel_requested+attempts),0) AS changes,GROUP_CONCAT(status) AS statuses FROM jobs')
+                current = {'downloads': store.all('SELECT id,status,files,skipped,total_files,bytes,speed,current_filename,file_bytes,file_total,error FROM jobs ORDER BY seq DESC LIMIT 200')}
                 encoded = json.dumps(current)
                 if encoded != previous:
-                    yield 'event: update\ndata: {}\n\n'
+                    yield 'event: update\ndata: ' + encoded + '\n\n'
                     previous = encoded
                 else:
                     yield ': heartbeat\n\n'
@@ -414,7 +452,20 @@ def create_app(config_dir=None, roots=None, start_queue=True):
         return StreamingResponse(stream(), media_type='text/event-stream', headers={'X-Accel-Buffering':'no'})
     @app.get('/api/openapi.json', dependencies=[Depends(auth)])
     def openapi():
-        return app.openapi()
+        schema = app.openapi()
+        schemes = schema.setdefault('components', {}).setdefault('securitySchemes', {})
+        schemes['AppToken'] = {'type': 'http', 'scheme': 'bearer', 'description': 'Create a scoped app token in Settings → API.'}
+        schemes['AdminSession'] = {'type': 'apiKey', 'in': 'cookie', 'name': 'magpie_session', 'description': 'Mutations also require X-CSRF-Token.'}
+        for path, methods in schema['paths'].items():
+            app_access = path in ('/api/destinations', '/api/events', '/api/version', '/api/openapi.json') or path.startswith('/api/downloads')
+            for method, operation in methods.items():
+                if method not in ('get', 'post', 'patch', 'delete') or not isinstance(operation, dict):
+                    continue
+                if path in ('/api/health', '/api/auth/setup', '/api/auth/login', '/api/auth/status'):
+                    continue
+                allowed = app_access and (method == 'get' or (method == 'post' and (path == '/api/downloads' or path.endswith(('/cancel', '/retry')))))
+                operation['security'] = [{'AdminSession': []}] + ([{'AppToken': []}] if allowed else [])
+        return schema
     # SPA fallback must not hide unknown API endpoints.
     static = Path(os.environ.get('MAGPIE_STATIC', str(Path(__file__).resolve().parents[2] / 'static')))
     if (static / 'assets').is_dir():

@@ -77,3 +77,16 @@ class DestinationView(DestinationCreate):
     id: str
     accessible: bool
     writable: bool
+
+class ApiTokenCreate(Strict):
+    name: str = Field(min_length=1, max_length=60)
+    expires_days: int = Field(default=90, ge=1, le=365)
+
+class ApiTokenView(BaseModel):
+    id: str
+    name: str
+    created_at: str
+    expires_at: float
+
+class ApiTokenIssued(ApiTokenView):
+    token: str

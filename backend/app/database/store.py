@@ -31,6 +31,9 @@ class Store:
             CREATE INDEX IF NOT EXISTS jobs_status ON jobs(status, seq);
             CREATE TABLE IF NOT EXISTS sessions (
               token TEXT PRIMARY KEY, csrf TEXT NOT NULL, expires REAL NOT NULL, created_at TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS api_tokens (
+              id TEXT PRIMARY KEY, name TEXT NOT NULL, digest TEXT UNIQUE NOT NULL,
+              created_at TEXT NOT NULL, expires_at REAL NOT NULL);
             CREATE TABLE IF NOT EXISTS cookies (
               id TEXT PRIMARY KEY, website TEXT UNIQUE NOT NULL, updated_at TEXT NOT NULL);
             ''')

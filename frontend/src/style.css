@@ -2092,3 +2092,11 @@ button.pluck:disabled { opacity:1; background:#005454; color:#F1F6FC; border-col
 
 .status-pill { display:inline-flex; align-items:center; justify-content:center; min-height:24px; line-height:1; padding:0 8px; gap:5px; vertical-align:middle; }
 .status-pill > svg { display:block; flex-shrink:0; }
+
+.issued-token { margin-top:22px; padding:16px; border:1px solid #C8D7E2; border-radius:10px; background:#E7EFF6; }
+.issued-token input { width:100%; font-family:monospace; margin:10px 0; }
+.api-token-list { margin-top:22px; }
+.api-guide pre { padding:16px; background:#E7EFF6; border-radius:8px; overflow:auto; color:#001330; }
+.api-guide code { overflow-wrap:anywhere; }
+.api-guide ol { padding-left:22px; list-style:decimal; }
+.api-guide li { margin-bottom:10px; }

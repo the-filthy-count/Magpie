@@ -309,7 +309,7 @@ export default function App() {
               <footer className="page-footer">
                 <span>
                   <img src="/logo.png" /> A little less saving for later. A
-                  little more keeping.
+                  little more keeping forever.
                 </span>
                 <span>
                   Powered by gallery-dl <ArrowUpRight size={12} />

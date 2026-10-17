@@ -130,3 +130,7 @@ See `VALIDATION.md` for checks actually performed in this build, including the s
 ## Brand and license
 
 The application uses the supplied Magpie illustration, Bird identity font and six-colour palette; see `assets/branding/README.md`. SVG files losslessly embed the supplied raster illustration rather than pretending it is vector artwork. Original Magpie code is GPL-2.0-only, compatible with its gallery-dl integration. The complete license is in `COPYING`. Supplied brand assets retain their original ownership/licensing.
+
+## App integrations
+
+Create scoped Bearer tokens under **Settings → API** to submit galleries and monitor individual file and album progress. See [the app API guide](docs/API.md) for curl examples, live events and permissions.

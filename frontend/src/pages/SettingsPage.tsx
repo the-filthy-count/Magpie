@@ -1,3 +1,4 @@
+import ApiSettings from "../components/ApiSettings";
 import { useState, useEffect } from "react";
 import { Check, Plus, RefreshCw, ShieldCheck, Trash2, Activity, ExternalLink } from "lucide-react";
 import { api, bytes, date, Job, Destination } from "../services/api";
@@ -59,7 +60,7 @@ export default function SettingsPage({
         </span>
       </div>
       <div className="settings-tabs">
-        {["general", "engine", "authentication", "system"].map((t) => (
+        {["general", "engine", "authentication", "api", "system"].map((t) => (
           <button
             key={t}
             className={tab === t ? "active" : ""}
@@ -70,10 +71,11 @@ export default function SettingsPage({
           >
             {t === "engine"
               ? "Download engine"
-              : t.charAt(0).toUpperCase() + t.slice(1)}
+              : t === "api" ? "API" : t.charAt(0).toUpperCase() + t.slice(1)}
           </button>
         ))}
       </div>
+      {tab === "api" && <ApiSettings notify={notify} />}
       {(tab === "general" || tab === "engine") && (
         <form
           className="settings-card settings-form"
