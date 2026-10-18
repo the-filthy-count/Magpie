@@ -19,6 +19,8 @@ class DownloadCreate(Strict):
 
     custom_fields: dict[str, str] = Field(default_factory=dict, max_length=10)
     filename_position: Literal['start','end'] = 'start'
+    phase: Literal['downloading','publishing'] = 'downloading'
+    staging_path: str | None = None
 
     @field_validator('custom_fields')
     @classmethod
@@ -103,6 +105,8 @@ class Settings(Strict):
     schedule_enabled: bool = False
     schedule_start: str = '00:00'
     schedule_end: str = '00:00'
+    publish_when_complete: bool = True
+    in_progress_path: str = Field(default='', max_length=4096)
     resume_interrupted: bool = False
     site_rules: list[SiteRule] = Field(default_factory=list, max_length=50)
 
@@ -176,6 +180,8 @@ class JobView(BaseModel):
     attempts: int
     custom_fields: dict[str,str] = Field(default_factory=dict)
     filename_position: Literal['start','end'] = 'start'
+    phase: Literal['downloading','publishing'] = 'downloading'
+    staging_path: str | None = None
 
     @field_validator('custom_fields',mode='before')
     @classmethod

@@ -95,3 +95,18 @@ remain unavailable.
 ## Changing a destination path
 
 Edit the container path under Destinations → Edit, with typing, autocomplete or Browse. The target must already exist and be writable under a permitted download root. Finish or cancel active jobs before changing it. Files stay in their original folder. New jobs use a fresh archive for the new path; history and retries keep their original path and archive.
+
+
+## In Progress storage
+
+New jobs default to **Publish only when the whole download completes**. Settings → Download engine → More download options → In Progress storage lets you browse/type a dedicated container folder. Leave the location empty to use `<destination>/.magpie-in-progress/<job-id>/`; each job is isolated. Disable the option to restore immediate per-file publication. Settings changes affect new jobs, while queued/failed jobs retain their staging and destination snapshots. Existing jobs without a snapshot adopt the current setting when first executed after upgrading.
+
+A custom location must already exist, be writable, and sit inside an explicitly permitted root. A destination cannot be inside In Progress storage. For a separate Docker bind mount, uncomment the `/in-progress` volume in Compose, set `IN_PROGRESS_PATH` to the host directory and include `/in-progress` in `MAGPIE_DOWNLOAD_ROOTS`; give the configured container UID/GID write access. Then select `/in-progress` in settings. No additional mount is needed for the default hidden folder.
+
+Files retain normal extensions inside staging once their `.part` transfer finishes, allowing video merging and subtitles to work normally. If downloading fails, is cancelled or is interrupted, completed and partial files remain there for retry. Each job keeps its native archive under `/config/archives/<destination-archive>/jobs/<job-id>/`; entries reach the shared destination archive only after publication. Thus an unfinished job cannot make a separate job skip unpublished files. Existing destination archives still prevent repeat downloads. Archives describe files retrieved successfully; do not manually remove staged files while a job is recoverable.
+
+After a successful engine run, the job remains `downloading` with `phase: "publishing"` until all files are published and the shared archive commits. The interface shows **Publishing**. File/album percentages still describe downloads and may reach 100 before publication completes. Publication has no invented percentage or speed.
+
+On the same filesystem, files publish via fast, non-overwriting hard links before staging copies are removed. Across filesystems, complete files copy to hidden `.magpie-transfer-<job-id>` files in the target directory, sync and then publish atomically per file. This needs space on both disks. The destination filesystem must support hard links. Existing files with identical contents are accepted when retrying an interrupted publication; conflicting contents fail safely without replacement. Failed publication keeps the source files, though any files already published remain visible. Albums publish per file, including organised layouts; publication of an entire album is not atomic.
+
+Exclude `.magpie-in-progress`, custom staging storage and `.magpie-transfer-*` from library scans. Removing history or destinations never deletes staged files or media; deleting history removes the job's retry control, so retry first if you want to finish it. Cancel before manually cleaning abandoned staging folders. Per-job archive metadata remains under `/config` for recovery.

@@ -62,7 +62,7 @@ class Queue:
                     if not row:
                         break
                     row = dict(row)
-                    db.execute("UPDATE jobs SET status='downloading',started_at=?,attempts=attempts+1,cancel_requested=0 WHERE id=?", (now(), row['id']))
+                    db.execute("UPDATE jobs SET status='downloading',phase='downloading',started_at=?,attempts=attempts+1,cancel_requested=0 WHERE id=?", (now(), row['id']))
                 task = asyncio.create_task(self.execute(row, settings.copy()))
                 self.active[row['id']] = task
                 task.add_done_callback(lambda _, key=row['id']: self.active.pop(key, None))
@@ -75,6 +75,16 @@ class Queue:
             path = destination_path(row['destination_path'], self.config['roots'])
             archive = self.config['dir'] / 'archives' / (row.get('archive_id') or row['destination_id'])
             archive.mkdir(mode=0o700, parents=True, exist_ok=True)
+            from app.downloads.staging import staging_location, prepare_staging
+            staging = row.get('staging_path')
+            if staging is None:
+                staging = staging_location(path, row['id'], settings, self.config['roots']) if settings['publish_when_complete'] else ''
+                self.store.execute('UPDATE jobs SET staging_path=? WHERE id=?', (staging, row['id']))
+            published_archive = archive
+            if staging:
+                staging = prepare_staging(staging, path, self.config['roots'])
+                archive = published_archive / 'jobs' / row['id']
+                archive.mkdir(mode=0o700, parents=True, exist_ok=True)
             # Cookie selection is domain scoped, never gallery-dl category text supplied by a URL.
             cookies = self.store.all('SELECT * FROM cookies')
             cookie = next((str(self.config['dir'] / 'cookies' / (c['id'] + '.txt')) for c in cookies
@@ -82,6 +92,8 @@ class Queue:
             from app.downloads.options import effective_settings
             settings = effective_settings(settings, row['website'], row.get('organisation_override'))
             spec = dict(url=row['url'], destination_path=path, archive=str(archive), cookie=cookie, settings=settings, custom_fields=json.loads(row.get('custom_fields') or '{}'), filename_position=row.get('filename_position') or 'start')
+            if staging:
+                spec.update(destination_path=staging, publish_destination=path, published_archive=str(published_archive), job_id=row['id'])
             env = {k: v for k, v in os.environ.items() if k.upper() not in
                    ('HTTP_PROXY','HTTPS_PROXY','ALL_PROXY','NO_PROXY','PYTHONPATH','PYTHONSTARTUP')}
             env['PYTHONDONTWRITEBYTECODE'] = '1'
@@ -100,7 +112,7 @@ class Queue:
                         event = json.loads(line)
                         if 'error' in event:
                             error = str(event['error'])[:500]
-                        allowed = {'files','skipped','bytes','speed','current_filename','file_bytes','file_total','total_files'}
+                        allowed = {'files','skipped','bytes','speed','current_filename','file_bytes','file_total','total_files','phase'}
                         updates = {k: v for k, v in event.items() if k in allowed}
                         if updates:
                             self.store.execute('UPDATE jobs SET ' + ','.join(f'{k}=?' for k in updates) + ' WHERE id=?', (*updates.values(), row['id']))
@@ -127,6 +139,11 @@ class Queue:
                     await asyncio.gather(reader, return_exceptions=True)
             cancelled = self.store.one('SELECT cancel_requested FROM jobs WHERE id=?', (row['id'],))['cancel_requested']
             status = 'cancelled' if cancelled else 'interrupted' if self.stopping else 'failed' if process.returncode or error else 'completed'
+            if status == 'completed' and staging:
+                try:
+                    Path(staging).rmdir()
+                except OSError:
+                    pass
         except Exception as exc:
             status = 'interrupted' if self.stopping else 'failed'
             error = f'Worker could not finish ({type(exc).__name__}); verify destination access and system configuration'

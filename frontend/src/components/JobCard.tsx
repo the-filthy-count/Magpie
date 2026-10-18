@@ -38,7 +38,7 @@ export default function JobCard({
             {j.status === "downloading" && (
               <LoaderCircle className="spin" size={11} />
             )}{" "}
-            {j.status.charAt(0).toUpperCase() + j.status.slice(1)}
+            {j.status === 'downloading' && j.phase === 'publishing' ? 'Publishing' : j.status.charAt(0).toUpperCase() + j.status.slice(1)}
           </span>
         </div>
         <div className="job-url" title={j.url}>
@@ -137,6 +137,7 @@ export default function JobCard({
             <dd>{j.url}</dd>
             <dt>Destination</dt>
             <dd>{j.destination_path}</dd>
+            {j.staging_path && <><dt>In Progress</dt><dd>{j.staging_path}</dd></>}
             <dt>Queued</dt>
             <dd>{date(j.created_at)}</dd>
             <dt>Started</dt>

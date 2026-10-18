@@ -169,3 +169,8 @@ curl -X DELETE "$MAGPIE_URL/api/downloads/JOB_ID" \
 curl -X DELETE "$MAGPIE_URL/api/downloads" \
   -H "Authorization: Bearer $MAGPIE_TOKEN"
 ```
+
+
+### Staged publication
+
+Settings include `publish_when_complete` (default `true`) and `in_progress_path` (default `""`, meaning a hidden folder per destination). These settings require an administrator session. `JobView.staging_path` is the immutable per-job staging folder, `""` for immediate publication, or `null` for a legacy job not yet assigned. Job status remains `downloading` during publication with `phase: "publishing"`; REST and SSE expose `phase`. Treat only `status: "completed"` as confirmation that files have reached the final destination. File and album percentages describe transfer progress and can be 100 while publication is underway. Failed publication retains staged files for retry.

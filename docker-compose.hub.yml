@@ -10,9 +10,11 @@ services:
       - ${PICTURES_PATH:-./downloads/pictures}:/downloads/pictures
       - ${MODELS_PATH:-./downloads/models}:/downloads/models
       - ${OTHER_PATH:-./downloads/other}:/downloads/other
+      # Optional dedicated staging mount; select /in-progress in Download engine settings.
+      # - ${IN_PROGRESS_PATH:-./downloads/in-progress}:/in-progress
     environment:
       TZ: Europe/London
-      MAGPIE_DOWNLOAD_ROOTS: /downloads/pictures:/downloads/models:/downloads/other
+      MAGPIE_DOWNLOAD_ROOTS: ${MAGPIE_DOWNLOAD_ROOTS:-/downloads/pictures:/downloads/models:/downloads/other}
       MAGPIE_ALLOWED_HOSTS: "${NAS_IP},localhost,127.0.0.1"
       MAGPIE_SECURE_COOKIES: "${MAGPIE_SECURE_COOKIES:-false}"
       MAGPIE_JOB_TIMEOUT: "86400"

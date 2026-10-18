@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Folder, ArrowUp, X } from "lucide-react";
 import { api } from "../services/api";
 type Listing = { path: string; parent: string | null; folders: string[]; truncated: boolean };
-export default function PathPicker({ value, onChange, disabled }: { value: string; onChange: (value: string) => void; disabled: boolean }) {
+export default function PathPicker({ value, onChange, disabled, required = true, inputId = 'destination-path' }: { value: string; onChange: (value: string) => void; disabled: boolean; required?: boolean; inputId?: string }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [listing, setListing] = useState<Listing | null>(null);
@@ -29,8 +29,8 @@ export default function PathPicker({ value, onChange, disabled }: { value: strin
   }
   return <div className="path-picker">
     <div className="path-input-row">
-      <input id="destination-path" value={value} onChange={e => onChange(e.target.value)} required disabled={disabled} list="destination-paths" autoComplete="off" placeholder="/downloads/pictures" />
-      <datalist id="destination-paths">{suggestions.map(path => <option key={path} value={path} />)}</datalist>
+      <input id={inputId} value={value} onChange={e => onChange(e.target.value)} required={required} disabled={disabled} list={inputId+"-suggestions"} autoComplete="off" placeholder="/downloads/pictures" />
+      <datalist id={inputId+"-suggestions"}>{suggestions.map(path => <option key={path} value={path} />)}</datalist>
       <button type="button" className="icon-button" title="Browse folders" aria-label="Browse folders" disabled={disabled} onClick={() => { setListing(null); dialog.current?.showModal(); browse(""); }}><Folder size={18} /></button>
     </div>
     <dialog ref={dialog} className="folder-dialog" aria-labelledby="folder-dialog-title">

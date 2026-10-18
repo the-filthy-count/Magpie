@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Info, Plus, Trash2 } from "lucide-react";
+import PathPicker from "./PathPicker";
 import HelpTooltip from "./HelpTooltip";
 export default function DownloadPreferences({draft,update}:{draft:any;update:(key:string,value:any)=>void}) {
   const [extensions,setExtensions]=useState((draft.extensions||[]).join(', '));
@@ -9,6 +10,11 @@ export default function DownloadPreferences({draft,update}:{draft:any;update:(ke
   const setRule=(index:number,key:string,value:any)=>update('site_rules',rules.map((r:any,i:number)=>i===index?{...r,[key]:value}:r));
   return <details className="download-preferences wide" open>
     <summary>More download options</summary>
+    <div className="preference-heading"><h3>In Progress storage</h3><HelpTooltip label="In Progress storage information" icon={<Info size={18}/>}>Each job downloads into its own temporary folder. Files reach the destination only after the download succeeds. Failed jobs stay in staging for retry. Leave the location empty to use .magpie-in-progress inside each destination. Exclude staging and .magpie-transfer-* files from library scans. Separate filesystems require copying and extra free space. Publication is per file; flat albums do not appear simultaneously. Changes apply to new jobs.</HelpTooltip></div>
+    <div className="form-grid">
+      <label className="preference-check wide"><input type="checkbox" checked={draft.publish_when_complete!==false} onChange={e=>update('publish_when_complete',e.target.checked)}/>Publish only when the whole download completes</label>
+      {draft.publish_when_complete!==false && <div className="wide"><label htmlFor="in-progress-path">In Progress location</label><PathPicker inputId="in-progress-path" value={draft.in_progress_path||''} onChange={value=>update('in_progress_path',value)} disabled={false} required={false}/><small>Leave empty for a hidden folder in each destination, or choose a dedicated writable folder inside a permitted mount.</small></div>}
+    </div>
     <div className="preference-heading"><h3>Media and video</h3><HelpTooltip label="Video and file filtering information" icon={<Info size={18}/>}>
       Quality, format and subtitle preferences apply to yt-dlp video downloads. MP4 is preferred when offered, without transcoding. Filters use extractor metadata; unknown extensions are excluded when filtering. Gallery title prefixes fall back to native filenames when no gallery title exists.
     </HelpTooltip></div>

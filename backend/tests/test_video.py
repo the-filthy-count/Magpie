@@ -191,3 +191,18 @@ def test_real_video_custom_fields(tmp_path,media,monkeypatch,position):
     if position=='start':assert files[0].name.startswith('Alice - Nature - ')
     else:assert files[0].name.endswith(' - Alice - Nature.mp4')
     assert any(e.get('files')==1 for e in events)
+
+
+def test_merged_video_publishes_from_staging(tmp_path,media,monkeypatch):
+    original_script=SCRIPT
+    final=tmp_path/'published';final.mkdir()
+    shared=tmp_path/'shared';shared.mkdir()
+    # Inject staging publication into the same real yt-dlp and FFmpeg fixture.
+    staged=original_script.replace("sys.exit(run(spec))",f"spec.update(publish_destination={str(final)!r},published_archive={str(shared)!r},job_id='video-job')\nsys.exit(run(spec))")
+    monkeypatch.setitem(globals(),'SCRIPT',staged)
+    root,events=execute(tmp_path,media,merge=True,settings={'organisation':'flat'})
+    assert not list(root.iterdir())
+    files=list(final.glob('*.mp4'));assert len(files)==1
+    result=subprocess.run(['ffprobe','-v','error','-show_entries','stream=codec_type','-of','json',str(files[0])],capture_output=True,text=True,check=True)
+    assert {s['codec_type'] for s in json.loads(result.stdout)['streams']}=={'audio','video'}
+    assert any(e.get('phase')=='publishing' for e in events)

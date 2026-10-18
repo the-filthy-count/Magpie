@@ -266,9 +266,15 @@ def create_app(config_dir=None, roots=None, start_queue=True):
             return {'path': str(current), 'parent': parent, 'folders': sorted(result[:200], key=str.casefold), 'truncated': len(result) > 200}
         except (OSError, ValueError):
             raise HTTPException(400, 'Folder is unavailable or outside permitted download roots')
+    def check_final_location(path):
+        configured = store.get('settings').get('in_progress_path')
+        if '.magpie-in-progress' in Path(path).parts or (configured and Path(path).is_relative_to(Path(configured))):
+            raise HTTPException(400, 'Choose a final destination outside In Progress storage')
+
     @app.post('/api/destinations', response_model=DestinationView, status_code=201, dependencies=[Depends(auth)])
     def add_destination(body: DestinationCreate):
         path = destination_path(body.path, config['roots'])
+        check_final_location(path)
         ident = uuid.uuid4().hex
         with store.db() as db:
             default = body.is_default or not db.execute('SELECT 1 FROM destinations').fetchone()
@@ -289,6 +295,7 @@ def create_app(config_dir=None, roots=None, start_queue=True):
                     changes['path'] = destination_path(changes['path'], config['roots'])
                 except (OSError, ValueError):
                     raise HTTPException(400, 'Choose an existing folder inside a permitted download root')
+                check_final_location(changes['path'])
                 if changes['path'] != old['path']:
                     if db.execute("SELECT 1 FROM jobs WHERE destination_id=? AND status IN ('queued','downloading')", (ident,)).fetchone():
                         raise HTTPException(409, 'Finish or cancel active jobs before changing this destination path')
@@ -343,8 +350,11 @@ def create_app(config_dir=None, roots=None, start_queue=True):
                 raise HTTPException(429, 'Queue is full')
             if db.execute("SELECT 1 FROM jobs WHERE url=? AND destination_id=? AND status IN ('queued','downloading')", (body.url, dest['id'])).fetchone():
                 raise HTTPException(409, 'This URL is already queued for that destination')
-            db.execute('INSERT INTO jobs (id,url,website,destination_id,destination_name,destination_path,created_at,organisation_override,archive_id,custom_fields,filename_position) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
-                       (ident, body.url, urlsplit(body.url).hostname.lower(), dest['id'], dest['name'], dest['path'], now(), dest['organisation'], dict(row).get('archive_id') or dest['id'], json.dumps(body.custom_fields), body.filename_position))
+            from app.downloads.staging import staging_location
+            prefs = store.get('settings')
+            staging = staging_location(dest['path'], ident, prefs, config['roots']) if prefs['publish_when_complete'] else ''
+            db.execute('INSERT INTO jobs (id,url,website,destination_id,destination_name,destination_path,created_at,organisation_override,archive_id,custom_fields,filename_position,staging_path) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+                       (ident, body.url, urlsplit(body.url).hostname.lower(), dest['id'], dest['name'], dest['path'], now(), dest['organisation'], dict(row).get('archive_id') or dest['id'], json.dumps(body.custom_fields), body.filename_position, staging))
         return get_job(ident)
     @app.get('/api/downloads', response_model=list[JobView], dependencies=[Depends(auth)])
     def downloads(status: str = '', website: str = '', destination_id: str = '', q: str = '', since: str = '', until: str = '', limit: int = 200, offset: int = 0):
@@ -396,6 +406,21 @@ def create_app(config_dir=None, roots=None, start_queue=True):
     @app.patch('/api/settings', response_model=Settings, dependencies=[Depends(auth)])
     def update_settings(body: dict):
         updated = Settings.model_validate({**store.get('settings'), **body})
+        if updated.in_progress_path:
+            try:
+                updated.in_progress_path = destination_path(updated.in_progress_path, config['roots'])
+            except (OSError, ValueError):
+                raise HTTPException(400, 'In Progress must be an existing folder inside a permitted download root')
+            stage = Path(updated.in_progress_path)
+            if any(Path(d['path']).is_relative_to(stage) for d in store.all('SELECT path FROM destinations')):
+                raise HTTPException(400, 'In Progress must be a dedicated folder, not a destination or its parent')
+            probe = stage / ('.magpie-write-check-' + uuid.uuid4().hex)
+            try:
+                with probe.open('xb'): pass
+            except OSError:
+                raise HTTPException(400, 'In Progress folder is not writable')
+            finally:
+                probe.unlink(missing_ok=True)
         store.set('settings', updated.model_dump())
         return updated
     @app.get('/api/cookies', dependencies=[Depends(auth)])
@@ -468,7 +493,7 @@ def create_app(config_dir=None, roots=None, start_queue=True):
                 if not valid:
                     yield 'event: expired\ndata: {}\n\n'
                     break
-                current = {'downloads': store.all('SELECT id,status,files,skipped,total_files,bytes,speed,current_filename,file_bytes,file_total,error,custom_fields,filename_position FROM jobs ORDER BY seq DESC LIMIT 200')}
+                current = {'downloads': store.all('SELECT id,status,phase,files,skipped,total_files,bytes,speed,current_filename,file_bytes,file_total,error,custom_fields,filename_position FROM jobs ORDER BY seq DESC LIMIT 200')}
                 from app.core.progress import progress_fields
                 current['downloads'] = [{**row, 'custom_fields': json.loads(row['custom_fields']), **progress_fields(row)} for row in current['downloads']]
                 encoded = json.dumps(current)

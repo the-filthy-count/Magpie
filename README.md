@@ -6,7 +6,7 @@
 
 A self-hosted, single-container media downloader for your NAS. Paste a public gallery-dl-supported HTTP(S) link, pick a configured destination, and **Pluck**.
 
-Python 3.12+, FastAPI, gallery-dl 1.32.16, yt-dlp 2026.8.19, FFmpeg, SQLite, React, TypeScript, Vite and Tailwind. No external database, cloud service or separate queue service. The interface and authenticated API share port **9080**.
+Python 3.12+, FastAPI, gallery-dl 1.32.17, yt-dlp 2026.8.19, FFmpeg, SQLite, React, TypeScript, Vite and Tailwind. No external database, cloud service or separate queue service. The interface and authenticated API share port **9080**.
 
 ## Deploy with Docker Compose
 
@@ -141,4 +141,4 @@ Create scoped Bearer tokens under **Settings → API** to submit galleries and m
 
 ## Download preferences
 
-Settings → Download engine includes flat layouts with gallery-title filenames, video quality/format, playlist handling, media filters, file/size limits, subtitles, daily hours, automatic interrupted-job recovery and website defaults. Destinations can override organisation. See [Download settings](docs/DOWNLOAD_SETTINGS.md) for precedence, examples and engine limitations.
+Settings → Download engine includes flat layouts with gallery-title filenames, video quality/format, playlist handling, staged In Progress storage, media filters, file/size limits, subtitles, daily hours, automatic interrupted-job recovery and website defaults. Destinations can override organisation. See [Download settings](docs/DOWNLOAD_SETTINGS.md) for precedence, examples and engine limitations.

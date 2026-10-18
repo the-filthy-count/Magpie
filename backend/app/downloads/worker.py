@@ -16,6 +16,10 @@ def run(spec):
     from gallery_dl import config, job, output, exception
     root = Path(spec['destination_path']).resolve(strict=True)
     archive = Path(spec['archive']).resolve(strict=True)
+    publish_destination = Path(spec['publish_destination']).resolve(strict=True) if spec.get('publish_destination') else None
+    if publish_destination:
+        from app.downloads.staging import merge_archive
+        merge_archive(Path(spec['published_archive']) / 'archive.sqlite3', archive / 'archive.sqlite3')
     # No user/system config, hooks, executable expressions or external network
     # downloaders are accepted. Only sandboxed local FFmpeg helpers may execute.
     config.clear()
@@ -91,7 +95,7 @@ def run(spec):
     from app.downloads.paths import install_path_boundary
     install_path_boundary(root, settings['organisation'] == 'organised', settings['max_file_size'])
     guard_network()
-    landlock([root, archive])
+    landlock([root, archive] + ([publish_destination, Path(spec['published_archive'])] if publish_destination else []))
     validate_url(spec['url'])
     videos_seen = 0
     class AlbumDownloadJob(job.DownloadJob):
@@ -132,6 +136,22 @@ def run(spec):
     task.run()
     if task.status:
         emit(error=f'gallery-dl exited with status {task.status}. Check site support, cookies, rate limits and destination permissions.')
+    if not task.status and publish_destination:
+        emit(phase='publishing', speed=None)
+        from app.downloads.staging import publish_files, merge_archive
+        try:
+            publish_files(root, publish_destination, spec['job_id'])
+        except FileExistsError:
+            emit(error='Publication found a conflicting destination filename. Existing files were not overwritten; staged files are retained for retry.')
+            return 1
+        merge_archive(archive / 'archive.sqlite3', Path(spec['published_archive']) / 'archive.sqlite3')
+        # Sources are retained until every file is published and the shared archive commits.
+        import shutil
+        for child in root.iterdir():
+            if child.is_dir() and not child.is_symlink():
+                shutil.rmtree(child)
+            else:
+                child.unlink()
     return task.status
 
 

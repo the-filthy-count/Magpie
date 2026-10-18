@@ -8,7 +8,7 @@ DEFAULTS = dict(concurrency=2, retries=3, timeout=30, rate_limit=0, theme='dark'
                 retention_days=90, organisation='organised', filename='', directory=[], advanced={}, video_quality='best', video_format='best', playlist='all',
                 media_filter='all', extensions=[], max_files=0, max_file_size=0, subtitles='off',
                 subtitle_languages=['en'], schedule_enabled=False, schedule_start='00:00', schedule_end='00:00',
-                resume_interrupted=False, site_rules=[])
+                resume_interrupted=False, site_rules=[], publish_when_complete=True, in_progress_path='')
 
 class Store:
     def __init__(self, path):
@@ -43,6 +43,10 @@ class Store:
             if 'total_files' not in {row[1] for row in db.execute('PRAGMA table_info(jobs)')}:
                 db.execute('ALTER TABLE jobs ADD COLUMN total_files INTEGER')
             columns={row[1] for row in db.execute('PRAGMA table_info(jobs)')}
+            if 'phase' not in columns:
+                db.execute("ALTER TABLE jobs ADD COLUMN phase TEXT NOT NULL DEFAULT 'downloading'")
+            if 'staging_path' not in columns:
+                db.execute('ALTER TABLE jobs ADD COLUMN staging_path TEXT')
             if 'custom_fields' not in columns:
                 db.execute("ALTER TABLE jobs ADD COLUMN custom_fields TEXT NOT NULL DEFAULT '{}'")
             if 'filename_position' not in columns:

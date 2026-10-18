@@ -21,3 +21,10 @@ it('adds editable website defaults',()=>{
  fireEvent.click(screen.getByRole('button',{name:'Add website default'}));
  expect(update).toHaveBeenCalledWith('site_rules',[{website:''}]);
 });
+it('configures staging storage and direct publication',()=>{
+ const update=vi.fn();render(<DownloadPreferences draft={{...draft,publish_when_complete:true,in_progress_path:''}} update={update}/>);
+ fireEvent.change(screen.getByLabelText('In Progress location'),{target:{value:'/downloads/in-progress'}});
+ expect(update).toHaveBeenCalledWith('in_progress_path','/downloads/in-progress');
+ fireEvent.click(screen.getByLabelText('Publish only when the whole download completes'));
+ expect(update).toHaveBeenCalledWith('publish_when_complete',false);
+});
