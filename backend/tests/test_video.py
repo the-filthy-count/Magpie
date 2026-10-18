@@ -79,6 +79,7 @@ def execute(tmp_path,media,merge=False,settings=None):
 
 def test_generic_video_fallback_and_archive(tmp_path,media):
     root,events=execute(tmp_path,media)
+    assert any(e.get('engine')=='yt-dlp' and e.get('engine_extractor')=='Generic' for e in events)
     assert any(e.get('files')==1 for e in events)
     files=list(root.rglob('*.mp4'));assert len(files)==1
     assert files[0].stat().st_size>0

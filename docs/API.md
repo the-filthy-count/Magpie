@@ -174,3 +174,10 @@ curl -X DELETE "$MAGPIE_URL/api/downloads" \
 ### Staged publication
 
 Settings include `publish_when_complete` (default `true`) and `in_progress_path` (default `""`, meaning a hidden folder per destination). These settings require an administrator session. `JobView.staging_path` is the immutable per-job staging folder, `""` for immediate publication, or `null` for a legacy job not yet assigned. Job status remains `downloading` during publication with `phase: "publishing"`; REST and SSE expose `phase`. Treat only `status: "completed"` as confirmation that files have reached the final destination. File and album percentages describe transfer progress and can be 100 while publication is underway. Failed publication retains staged files for retry.
+
+
+### Automatic engine selection
+
+`POST /api/downloads` checks URL patterns against the installed gallery-dl extractor registry without contacting the site. A native match selects `engine: "gallery-dl"`; otherwise it selects `engine: "yt-dlp"`. Direct media URLs recognised by gallery-dl stay native. There is no separate supported-site list. Routing fields are output-only.
+
+Job list/detail/create responses expose `engine` and `engine_extractor`; legacy jobs may initially contain nulls. The worker rechecks the installed registry at execution, reports the actual extractor (for example `bunkr`, `Youtube` or `Generic`), and pushes both fields over SSE. For queued yt-dlp jobs, `engine_extractor: null` means extraction has not started. A generic yt-dlp probe can discover embedded media but does not confirm that a website is supported; unsupported/no-media pages fail with a clear job error. A native gallery-dl authentication, permission or transfer error does not trigger a second attempt with another engine. Archives, staging and filesystem/network restrictions apply to both routes.

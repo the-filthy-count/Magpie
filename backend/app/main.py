@@ -330,6 +330,8 @@ def create_app(config_dir=None, roots=None, start_queue=True):
     @app.post('/api/downloads', response_model=JobView, status_code=201, dependencies=[Depends(auth)])
     def create_download(body: DownloadCreate):
         validate_url(body.url)
+        from app.downloads.routing import route_url
+        routing = route_url(body.url)
         ident = uuid.uuid4().hex
         with store.db() as db:
             db.execute('BEGIN IMMEDIATE')
@@ -353,8 +355,8 @@ def create_app(config_dir=None, roots=None, start_queue=True):
             from app.downloads.staging import staging_location
             prefs = store.get('settings')
             staging = staging_location(dest['path'], ident, prefs, config['roots']) if prefs['publish_when_complete'] else ''
-            db.execute('INSERT INTO jobs (id,url,website,destination_id,destination_name,destination_path,created_at,organisation_override,archive_id,custom_fields,filename_position,staging_path) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
-                       (ident, body.url, urlsplit(body.url).hostname.lower(), dest['id'], dest['name'], dest['path'], now(), dest['organisation'], dict(row).get('archive_id') or dest['id'], json.dumps(body.custom_fields), body.filename_position, staging))
+            db.execute('INSERT INTO jobs (id,url,website,destination_id,destination_name,destination_path,created_at,organisation_override,archive_id,custom_fields,filename_position,staging_path,engine,engine_extractor) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                       (ident, body.url, urlsplit(body.url).hostname.lower(), dest['id'], dest['name'], dest['path'], now(), dest['organisation'], dict(row).get('archive_id') or dest['id'], json.dumps(body.custom_fields), body.filename_position, staging, routing['engine'], routing['engine_extractor']))
         return get_job(ident)
     @app.get('/api/downloads', response_model=list[JobView], dependencies=[Depends(auth)])
     def downloads(status: str = '', website: str = '', destination_id: str = '', q: str = '', since: str = '', until: str = '', limit: int = 200, offset: int = 0):
@@ -493,7 +495,7 @@ def create_app(config_dir=None, roots=None, start_queue=True):
                 if not valid:
                     yield 'event: expired\ndata: {}\n\n'
                     break
-                current = {'downloads': store.all('SELECT id,status,phase,files,skipped,total_files,bytes,speed,current_filename,file_bytes,file_total,error,custom_fields,filename_position FROM jobs ORDER BY seq DESC LIMIT 200')}
+                current = {'downloads': store.all('SELECT id,status,phase,engine,engine_extractor,files,skipped,total_files,bytes,speed,current_filename,file_bytes,file_total,error,custom_fields,filename_position FROM jobs ORDER BY seq DESC LIMIT 200')}
                 from app.core.progress import progress_fields
                 current['downloads'] = [{**row, 'custom_fields': json.loads(row['custom_fields']), **progress_fields(row)} for row in current['downloads']]
                 encoded = json.dumps(current)

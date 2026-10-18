@@ -77,3 +77,8 @@ it('uses the API percentages in both progress bars',()=>{
  expect(screen.getByLabelText('Current file progress')).toHaveAttribute('value','42.5');
  expect(screen.getByLabelText('Album progress')).toHaveAttribute('value','42.5');
 });
+it('shows the selected fallback engine without claiming generic site support',()=>{
+ render(<JobCard job={{...job,engine:'yt-dlp',engine_extractor:'Generic'}} action={vi.fn()}/>);
+ fireEvent.click(screen.getByLabelText('View details'));
+ expect(screen.getByText('yt-dlp · Generic (generic extraction)')).toBeVisible();
+});

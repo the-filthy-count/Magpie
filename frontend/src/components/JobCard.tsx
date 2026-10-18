@@ -135,6 +135,7 @@ export default function JobCard({
           <dl>
             <dt>Original URL</dt>
             <dd>{j.url}</dd>
+            {j.engine && <><dt>Download engine</dt><dd>{j.engine}{j.engine_extractor ? ` · ${j.engine_extractor}${j.engine_extractor === 'Generic' ? ' (generic extraction)' : ''}` : j.engine === 'yt-dlp' ? ' · checking for supported media' : ''}</dd></>}
             <dt>Destination</dt>
             <dd>{j.destination_path}</dd>
             {j.staging_path && <><dt>In Progress</dt><dd>{j.staging_path}</dd></>}

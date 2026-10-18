@@ -43,6 +43,9 @@ class Store:
             if 'total_files' not in {row[1] for row in db.execute('PRAGMA table_info(jobs)')}:
                 db.execute('ALTER TABLE jobs ADD COLUMN total_files INTEGER')
             columns={row[1] for row in db.execute('PRAGMA table_info(jobs)')}
+            for name in ('engine', 'engine_extractor'):
+                if name not in columns:
+                    db.execute(f'ALTER TABLE jobs ADD COLUMN {name} TEXT')
             if 'phase' not in columns:
                 db.execute("ALTER TABLE jobs ADD COLUMN phase TEXT NOT NULL DEFAULT 'downloading'")
             if 'staging_path' not in columns:

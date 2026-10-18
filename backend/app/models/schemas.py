@@ -19,8 +19,6 @@ class DownloadCreate(Strict):
 
     custom_fields: dict[str, str] = Field(default_factory=dict, max_length=10)
     filename_position: Literal['start','end'] = 'start'
-    phase: Literal['downloading','publishing'] = 'downloading'
-    staging_path: str | None = None
 
     @field_validator('custom_fields')
     @classmethod
@@ -182,6 +180,8 @@ class JobView(BaseModel):
     filename_position: Literal['start','end'] = 'start'
     phase: Literal['downloading','publishing'] = 'downloading'
     staging_path: str | None = None
+    engine: Literal['gallery-dl','yt-dlp'] | None = None
+    engine_extractor: str | None = None
 
     @field_validator('custom_fields',mode='before')
     @classmethod

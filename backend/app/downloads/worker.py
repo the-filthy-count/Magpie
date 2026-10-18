@@ -126,16 +126,27 @@ def run(spec):
                 if type(count) is int and count > 0:
                     emit(total_files=count)
             return super().handle_directory(metadata)
-    try:
-        task = AlbumDownloadJob(spec['url'])
-    except exception.NoExtractorError:
-        # Prefix is internal only: the submitted URL was validated as HTTP(S).
+    from app.downloads.routing import route_url
+    routing = route_url(spec['url'])
+    engine = routing['engine']
+    if engine == 'gallery-dl':
+        try:
+            task = AlbumDownloadJob(spec['url'])
+        except exception.NoExtractorError:
+            engine = 'yt-dlp'
+            task = AlbumDownloadJob('ytdl:' + spec['url'])
+    else:
+        # Internal prefix only; validate_url above still guards the real URL.
         task = AlbumDownloadJob('ytdl:' + spec['url'])
+    emit(engine=engine, engine_extractor=getattr(task.extractor, 'ytdl_ie_key', None) if engine == 'yt-dlp' else task.extractor.category)
     if task.extractor.category=='directlink':
         emit(total_files=1)
     task.run()
     if task.status:
-        emit(error=f'gallery-dl exited with status {task.status}. Check site support, cookies, rate limits and destination permissions.')
+        if engine == 'yt-dlp':
+            emit(error='yt-dlp could not download media from this URL. The page may be unsupported or require cookies; check site availability and authentication.')
+        else:
+            emit(error=f'gallery-dl exited with status {task.status}. Check site support, cookies, rate limits and destination permissions.')
     if not task.status and publish_destination:
         emit(phase='publishing', speed=None)
         from app.downloads.staging import publish_files, merge_archive
