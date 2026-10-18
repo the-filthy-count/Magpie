@@ -355,8 +355,8 @@ def create_app(config_dir=None, roots=None, start_queue=True):
             from app.downloads.staging import staging_location
             prefs = store.get('settings')
             staging = staging_location(dest['path'], ident, prefs, config['roots']) if prefs['publish_when_complete'] else ''
-            db.execute('INSERT INTO jobs (id,url,website,destination_id,destination_name,destination_path,created_at,organisation_override,archive_id,custom_fields,filename_position,staging_path,engine,engine_extractor) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
-                       (ident, body.url, urlsplit(body.url).hostname.lower(), dest['id'], dest['name'], dest['path'], now(), dest['organisation'], dict(row).get('archive_id') or dest['id'], json.dumps(body.custom_fields), body.filename_position, staging, routing['engine'], routing['engine_extractor']))
+            db.execute('INSERT INTO jobs (id,url,website,destination_id,destination_name,destination_path,created_at,organisation_override,archive_id,custom_fields,filename_position,staging_path,engine,engine_extractor,total_files) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+                       (ident, body.url, urlsplit(body.url).hostname.lower(), dest['id'], dest['name'], dest['path'], now(), dest['organisation'], dict(row).get('archive_id') or dest['id'], json.dumps(body.custom_fields), body.filename_position, staging, routing['engine'], routing['engine_extractor'], routing.get('total_files')))
         return get_job(ident)
     @app.get('/api/downloads', response_model=list[JobView], dependencies=[Depends(auth)])
     def downloads(status: str = '', website: str = '', destination_id: str = '', q: str = '', since: str = '', until: str = '', limit: int = 200, offset: int = 0):

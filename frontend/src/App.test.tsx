@@ -29,7 +29,7 @@ describe("truthful job progress", () => {
     const { container } = render(<JobCard job={job} action={vi.fn()} />);
     expect(container.querySelector(".indeterminate")).toBeTruthy();
     expect(screen.queryByText(/%|\/s/)).toBeNull();
-    expect(screen.getByText("3 files")).toBeVisible();
+    expect(screen.getByText("3 completed")).toBeVisible();
   });
   it("shows measurable file progress", () => {
     render(
@@ -81,4 +81,12 @@ it('shows the selected fallback engine without claiming generic site support',()
  render(<JobCard job={{...job,engine:'yt-dlp',engine_extractor:'Generic'}} action={vi.fn()}/>);
  fireEvent.click(screen.getByLabelText('View details'));
  expect(screen.getByText('yt-dlp · Generic (generic extraction)')).toBeVisible();
+});
+
+it('shows the known single file count while its completion count remains zero',()=>{
+ render(<JobCard job={{...job,url:'https://filester.me/d/FILE',files:0,total_files:1,file_bytes:69,file_total:100,file_progress_percent:69,album_progress_percent:69}} action={vi.fn()}/>);
+ expect(screen.getByText('1 file · 0 completed')).toBeVisible();
+ expect(screen.getByText('Album · 1 file')).toBeVisible();
+ expect(screen.getByLabelText('Current file progress')).toHaveAttribute('value','69');
+ expect(screen.getByLabelText('Album progress')).toHaveAttribute('value','69');
 });

@@ -135,3 +135,23 @@ sys.exit(run(spec))
     events=[json.loads(line) for line in result.stdout.splitlines()]
     assert any(e.get('total_files')==1 for e in events)
     assert any(e.get('files')==1 for e in events)
+
+
+def test_filester_native_single_file_reports_total(tmp_path):
+    # Real Filester.items() parses a controlled page and yields its one URL;
+    # only the page/URL lookup and HTTP transport are replaced.
+    script=SCRIPT.replace('sys.exit(run(spec))', '''
+from types import SimpleNamespace
+from gallery_dl.extractor.filester import FilesterFileExtractor
+page='<meta property="og:title" content="fixture.png"> >UUID</span><b>fixture</b> >Type</span><b>image/png</b> >Uploaded</span><b>2026-10-18T00:00:00Z</b> >Size</span><b>68</b> >SHA-256</span><b>fixture</b>'
+FilesterFileExtractor.request=lambda self,*args,**kwargs:SimpleNamespace(text=page)
+FilesterFileExtractor._download_url=lambda self,ident:'https://93.184.216.34/fixture.png'
+sys.exit(run(spec))
+''')
+    root=tmp_path/'media';root.mkdir();archive=tmp_path/'archive';archive.mkdir()
+    spec=dict(url='https://filester.me/d/FIXTURE',destination_path=str(root),archive=str(archive),settings={**DEFAULTS,'organisation':'flat'},payload=PNG.hex())
+    result=subprocess.run([sys.executable,'-c',script],input=json.dumps(spec)+'\n',capture_output=True,text=True,timeout=20)
+    assert result.returncode==0,result.stdout+result.stderr
+    events=[json.loads(line) for line in result.stdout.splitlines()]
+    assert any(e.get('total_files')==1 for e in events)
+    assert any(e.get('files')==1 for e in events)

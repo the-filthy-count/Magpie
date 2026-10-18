@@ -18,7 +18,8 @@ from test_engine import SCRIPT,PNG
 def test_registry_routing_without_network(monkeypatch,url,engine,extractor):
     def forbidden(*a,**kw):raise AssertionError('Routing must not contact websites')
     monkeypatch.setattr(socket,'getaddrinfo',forbidden)
-    assert route_url(url)=={'engine':engine,'engine_extractor':extractor}
+    route=route_url(url)
+    assert route['engine']==engine and route['engine_extractor']==extractor
 
 
 @pytest.mark.parametrize('url,engine,extractor',[
@@ -60,3 +61,18 @@ def test_generic_probe_fails_clearly_when_page_has_no_media(tmp_path):
 def test_create_rejects_output_only_routing_and_staging_fields(admin,destination):
     result=admin.post('/api/downloads',json={'url':'https://example.com/watch','destination_id':destination['id'],'engine':'gallery-dl','staging_path':'/tmp'})
     assert result.status_code==422
+
+
+def test_single_file_hint_does_not_apply_to_filester_folders():
+    assert route_url('https://filester.me/d/FILE')['total_files']==1
+    assert 'total_files' not in route_url('https://filester.me/f/FOLDER')
+
+
+def test_filester_single_file_api_reports_matching_progress(admin,destination):
+    result=admin.post('/api/downloads',json={'url':'https://filester.me/d/FILE','destination_id':destination['id']})
+    assert result.status_code==201,result.text
+    data=result.json();assert data['total_files']==1
+    admin.app_ref.state.store.execute("UPDATE jobs SET status='downloading',file_bytes=69,file_total=100 WHERE id=?",(data['id'],))
+    for response in [admin.get('/api/downloads/'+data['id']).json(),admin.get('/api/downloads').json()[0]]:
+        assert response['files']==0
+        assert response['file_progress_percent']==response['album_progress_percent']==69

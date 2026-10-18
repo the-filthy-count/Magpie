@@ -17,7 +17,13 @@ def route_url(url):
         classes = _classes
     for cls in classes:
         if not cls.category.startswith('ytdl') and cls.pattern.match(url):
-            return {'engine': 'gallery-dl', 'engine_extractor': cls.category}
+            result = {'engine': 'gallery-dl', 'engine_extractor': cls.category}
+            # Verified against the pinned extractors: these yield exactly one
+            # media URL. A folder/post extractor can yield several and must not
+            # inherit a singleton total merely because its first file started.
+            if cls.category == 'directlink' or (cls.category, cls.subcategory) in (('filester', 'file'), ('bunkr', 'media'), ('bunkr', 'direct-link')):
+                result['total_files'] = 1
+            return result
     # yt-dlp's generic extractor matches any HTTP URL. Its match alone is not
     # proof of support; actual extraction stays in the confined queue worker.
     return {'engine': 'yt-dlp', 'engine_extractor': None}

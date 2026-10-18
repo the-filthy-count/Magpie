@@ -139,7 +139,7 @@ def run(spec):
         # Internal prefix only; validate_url above still guards the real URL.
         task = AlbumDownloadJob('ytdl:' + spec['url'])
     emit(engine=engine, engine_extractor=getattr(task.extractor, 'ytdl_ie_key', None) if engine == 'yt-dlp' else task.extractor.category)
-    if task.extractor.category=='directlink':
+    if routing.get('total_files') == 1:
         emit(total_files=1)
     task.run()
     if task.status:

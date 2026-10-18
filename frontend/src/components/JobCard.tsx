@@ -50,7 +50,7 @@ export default function JobCard({
             {j.destination_name}
           </span>
           <span>
-            {j.files} {j.files === 1 ? "file" : "files"}
+            {active(j) ? j.total_files ? `${j.total_files} ${j.total_files === 1 ? 'file' : 'files'} · ${j.files} completed` : `${j.files} completed` : `${j.files} ${j.files === 1 ? 'file' : 'files'}`}
             {j.skipped ? ` · ${j.skipped} skipped` : ""}
           </span>
           <span>
@@ -125,7 +125,7 @@ export default function JobCard({
               {albumPct !== null ? <progress max={100} value={albumPct} aria-label="Album progress" /> : <div />}
             </div>
             <small className="current-file album-caption">
-              <span>{albumPct !== null ? `Album · ${handled} of ${j.total_files} files` : `Overall · ${handled} files handled · total unknown`}{j.skipped ? ` · ${j.skipped} skipped` : ""}</span>
+              <span>{albumPct !== null ? j.total_files === 1 ? 'Album · 1 file' : `Album · ${handled} of ${j.total_files} files` : `Overall · ${handled} files handled · total unknown`}{j.skipped ? ` · ${j.skipped} skipped` : ""}</span>
               {albumPct !== null && <span>{albumPct.toFixed(0)}%</span>}
             </small>
           </div>
