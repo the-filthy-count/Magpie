@@ -2007,8 +2007,9 @@ button.text-button {
 
 .path-input-row { display:flex; gap:10px; align-items:center; }
 .path-input-row input { min-width:0; flex:1; }
-.folder-dialog { width:min(560px,calc(100vw - 32px)); max-height:85vh; overflow:auto; padding:24px; border:1px solid var(--border); border-radius:18px; background:var(--panel,#002C46); color:var(--text,#F1F6FC); box-shadow:0 24px 80px #0008; }
-.folder-dialog::backdrop { background:#030812b8; }
+dialog { position:fixed; inset:0; margin:auto; height:fit-content; }
+dialog::backdrop { background:#03081299; -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); }
+.folder-dialog { width:min(560px,calc(100vw - 32px)); max-height:calc(100dvh - 32px); overflow:auto; padding:24px; border:1px solid var(--border); border-radius:18px; background:var(--panel,#002C46); color:var(--text,#F1F6FC); box-shadow:0 24px 80px #0008; }
 .folder-dialog-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; }
 .folder-dialog code { display:block; overflow-wrap:anywhere; margin:16px 0; }
 .folder-list { display:grid; gap:8px; max-height:42vh; overflow:auto; margin:16px 0; }
