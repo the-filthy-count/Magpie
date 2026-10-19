@@ -1,3 +1,4 @@
+import NetworkStatus from "./components/NetworkStatus";
 import { useState, useEffect, useCallback } from "react";
 import { ArrowDownToLine, ArrowUpRight, Check, CheckCheck, ChevronRight, Folder, ListRestart, LogOut, Menu, Settings2, ShieldCheck, X, Image, Sun, Moon } from "lucide-react";
 import { api, setCsrf, bytes, Job, Destination } from "./services/api";
@@ -148,6 +149,7 @@ export default function App() {
             <span className="status-dot" />
             Your nest. Your files.<small>Self-hosted & privately yours.</small>
           </div>
+          <NetworkStatus />
           <div className="sidebar-footer">
             <span>
               MAGPIE <small>v1.0.0</small>

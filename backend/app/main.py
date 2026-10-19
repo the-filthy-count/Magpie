@@ -31,7 +31,7 @@ from app.database.store import Store
 from app.downloads.queue import Queue, now
 from app.models.schemas import (Credentials, Login, PasswordChange, DownloadCreate,
                                DestinationCreate, DestinationPatch, Settings, JobView, DestinationView,
-                               ApiTokenCreate, ApiTokenView, ApiTokenIssued)
+                               ApiTokenCreate, ApiTokenView, ApiTokenIssued, NetworkView)
 
 VERSION = '1.0.0'
 TERMINAL = ('completed', 'failed', 'cancelled', 'interrupted')
@@ -54,6 +54,8 @@ def create_app(config_dir=None, roots=None, start_queue=True):
         setup_path.write_text(secrets.token_urlsafe(24))
         setup_path.chmod(0o600)
     queue = Queue(store, config)
+    from app.core.network import NetworkInfo
+    network = NetworkInfo()
     attempts = defaultdict(deque)
     @asynccontextmanager
     async def lifespan(app):
@@ -402,6 +404,10 @@ def create_app(config_dir=None, roots=None, start_queue=True):
         if not changed:
             raise HTTPException(409, 'Cancel the download before removing it')
         return {'ok': True}
+    @app.get('/api/network', response_model=NetworkView, dependencies=[Depends(auth)])
+    async def network_info():
+        return await asyncio.to_thread(network.get)
+
     @app.get('/api/settings', response_model=Settings, dependencies=[Depends(auth)])
     def settings():
         return store.get('settings')

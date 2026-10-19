@@ -142,3 +142,6 @@ Create scoped Bearer tokens under **Settings → API** to submit galleries and m
 ## Download preferences
 
 Settings → Download engine includes flat layouts with gallery-title filenames, video quality/format, playlist handling, staged In Progress storage, media filters, file/size limits, subtitles, daily hours, automatic interrupted-job recovery and website defaults. Destinations can override organisation. See [Download settings](docs/DOWNLOAD_SETTINGS.md) for precedence, examples and engine limitations.
+
+
+The sidebar’s **Server connection** section shows the container’s public IP, approximate city/country and ISP using an HTTPS request to ipwho.is. The sidebar fetches it once when the app opens, with no polling or automatic refresh. Server responses are cached for five minutes to avoid repeated external lookups from multiple clients. It uses the server connection, not the browser IP, and ignores proxy environment variables like the download workers. Split routing and IPv4/IPv6 may still differ by destination; this is not a VPN-status guarantee. Failed lookups retain the last known information with a stale label and do not affect downloads.

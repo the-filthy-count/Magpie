@@ -217,3 +217,13 @@ class ApiTokenView(BaseModel):
 
 class ApiTokenIssued(ApiTokenView):
     token: str
+
+
+class NetworkView(BaseModel):
+    ip: str | None
+    country: str | None
+    city: str | None
+    isp: str | None
+    checked_at: str | None
+    stale: bool
+    error: str | None

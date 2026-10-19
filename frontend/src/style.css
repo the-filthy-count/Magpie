@@ -2122,3 +2122,9 @@ img.avatar { display:block; object-fit:cover; border:0; background:transparent; 
 
 .loading-logo { position:relative; display:grid; place-items:center; isolation:isolate; width:64px; height:64px; }
 .loading-logo::before { content:""; position:absolute; inset:-38px; z-index:-1; border-radius:50%; background:radial-gradient(circle,#F1F6FC38 0%,#F1F6FC16 36%,transparent 72%); filter:blur(12px); pointer-events:none; }
+
+.network-status { padding:14px 0; border-top:1px solid #002C461A; color:#002C46; font-size:11px; }
+.network-status-heading { display:flex; align-items:center; gap:7px; font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:#496171; }
+.network-status code { display:block; font-size:13px; font-weight:600; overflow-wrap:anywhere; margin:3px 0 6px; color:#002C46; }
+.network-status p { margin:3px 0; overflow-wrap:anywhere; color:#496171; line-height:1.5; }
+.network-status .network-stale { font-size:10px; }

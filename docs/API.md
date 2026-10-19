@@ -184,3 +184,8 @@ Job list/detail/create responses expose `engine` and `engine_extractor`; legacy 
 
 
 For confirmed single-file routes (including Filester `/d/` links), `total_files` is `1` and `album_progress_percent` mirrors `file_progress_percent` while downloading. The `files` counter always means successfully completed files, so it correctly remains `0` until the file finishes; use `total_files` for the known collection size. A folder or unknown collection is never inferred to contain one file merely because its first transfer has started.
+
+
+### Server network information
+
+`GET /api/network` requires an administrator session (app tokens cannot access it). Returns `ip`, `city`, `country`, `isp`, `checked_at`, `stale`, and `error`. IP/location/ISP/timestamp fields may be null when the provider is unavailable. Results are cached for five minutes (failed lookups for 30 seconds). The sidebar requests information once at initialisation, without polling. The lookup uses a fixed HTTPS service (ipwho.is), disables proxy-environment discovery and redirects, and never accepts arbitrary target URLs. The observed IP may differ from specific download destinations with split routing or another address family.
