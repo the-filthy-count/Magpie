@@ -2119,3 +2119,6 @@ img.avatar { display:block; object-fit:cover; border:0; background:transparent; 
 .site-preferences { margin-top:24px; }
 .site-rule { padding:16px; margin:14px 0; border:1px solid #C8D7E2; border-radius:10px; }
 .site-rule>.icon-button { margin-top:12px; }
+
+.loading-logo { position:relative; display:grid; place-items:center; isolation:isolate; width:64px; height:64px; }
+.loading-logo::before { content:""; position:absolute; inset:-38px; z-index:-1; border-radius:50%; background:radial-gradient(circle,#F1F6FC38 0%,#F1F6FC16 36%,transparent 72%); filter:blur(12px); pointer-events:none; }

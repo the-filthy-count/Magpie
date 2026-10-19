@@ -110,3 +110,8 @@ After a successful engine run, the job remains `downloading` with `phase: "publi
 On the same filesystem, files publish via fast, non-overwriting hard links before staging copies are removed. Across filesystems, complete files copy to hidden `.magpie-transfer-<job-id>` files in the target directory, sync and then publish atomically per file. This needs space on both disks. The destination filesystem must support hard links. Existing files with identical contents are accepted when retrying an interrupted publication; conflicting contents fail safely without replacement. Failed publication keeps the source files, though any files already published remain visible. Albums publish per file, including organised layouts; publication of an entire album is not atomic.
 
 Exclude `.magpie-in-progress`, custom staging storage and `.magpie-transfer-*` from library scans. Removing history or destinations never deletes staged files or media; deleting history removes the job's retry control, so retry first if you want to finish it. Cancel before manually cleaning abandoned staging folders. Per-job archive metadata remains under `/config` for recovery.
+
+
+## Pixeldrain availability
+
+Pixeldrain album progress uses its native list file count, including unavailable items. If the service flags a file as requiring a CAPTCHA or otherwise unavailable, Magpie reports that reason and keeps the job incomplete. With whole-job staging enabled, completed files remain in In Progress for retry; they are not discarded or published as a complete album. The terminal gallery-dl command can download available files before ultimately exiting with an error for a blocked item. Retry after the website restriction clears; native archives skip previously completed transfers.

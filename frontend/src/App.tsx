@@ -89,7 +89,7 @@ export default function App() {
   if (!auth)
     return (
       <div className="loading">
-        <img src="/logo.webp" width="64" />
+        <div className="loading-logo"><img src="/logo.webp" width="64" alt="Magpie" /></div>
         <p>{error || "Waking up Magpie…"}</p>
       </div>
     );

@@ -21,7 +21,7 @@ def route_url(url):
             # Verified against the pinned extractors: these yield exactly one
             # media URL. A folder/post extractor can yield several and must not
             # inherit a singleton total merely because its first file started.
-            if cls.category == 'directlink' or (cls.category, cls.subcategory) in (('filester', 'file'), ('bunkr', 'media'), ('bunkr', 'direct-link')):
+            if cls.category == 'directlink' or (cls.category, cls.subcategory) in (('filester', 'file'), ('bunkr', 'media'), ('bunkr', 'direct-link'), ('pixeldrain', 'file')):
                 result['total_files'] = 1
             return result
     # yt-dlp's generic extractor matches any HTTP URL. Its match alone is not

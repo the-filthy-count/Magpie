@@ -51,6 +51,18 @@ def run(spec):
     config.set((), 'downloader', {'http': {'rate': settings['rate_limit'] or None, 'progress': 0.5, 'part': True, 'filesize-max': settings['max_file_size'] or None},
                                 'ytdl': {'enabled': True, 'module': 'yt_dlp', 'progress': 0.5}})
     config.set(('cache',), 'file', str(archive / 'cache.sqlite3'))
+    # Preserve native availability decisions while reporting safe reasons rather
+    # than forwarding filenames, URLs or arbitrary remote error messages.
+    from collections import Counter
+    from gallery_dl.extractor.pixeldrain import PixeldrainExtractor
+    unavailable = Counter()
+    native_available = PixeldrainExtractor._available
+    def available(self, metadata):
+        result = native_available(self, metadata)
+        if not result:
+            unavailable[str(metadata.get('availability') or 'unavailable')] += 1
+        return result
+    PixeldrainExtractor._available = available
     completed_bytes = 0
     current_bytes = 0
     files = skipped = 0
@@ -114,6 +126,13 @@ def run(spec):
             return super().handle_url(url, metadata)
 
         def handle_directory(self, metadata):
+            if self.extractor.category == 'pixeldrain':
+                if self.extractor.subcategory == 'album':
+                    count = 1 if self.extractor.file_index is not None else metadata.get('album', {}).get('count')
+                    if type(count) is int and count > 0:
+                        emit(total_files=count)
+                elif self.extractor.subcategory == 'file' and metadata.get('availability'):
+                    unavailable[str(metadata['availability'])] += 1
             self._magpie_gallery=gallery_name(metadata)
             if not self._magpie_gallery and self.extractor.subcategory in ('album','gallery'):
                 title=metadata.get('title')
@@ -143,7 +162,15 @@ def run(spec):
         emit(total_files=1)
     task.run()
     if task.status:
-        if engine == 'yt-dlp':
+        if unavailable:
+            blocked = unavailable.get('file_rate_limited_captcha_required', 0)
+            message = (f'Pixeldrain requires a CAPTCHA for {blocked} file(s). ' if blocked else '')
+            message += f'Pixeldrain reports {sum(unavailable.values())} unavailable file(s); the album is incomplete. '
+            if publish_destination:
+                message += 'Completed files remain in In Progress. '
+            message += 'Retry after the site restriction clears; archived completed files will be skipped.'
+            emit(error=message)
+        elif engine == 'yt-dlp':
             emit(error='yt-dlp could not download media from this URL. The page may be unsupported or require cookies; check site availability and authentication.')
         else:
             emit(error=f'gallery-dl exited with status {task.status}. Check site support, cookies, rate limits and destination permissions.')
