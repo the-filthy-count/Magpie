@@ -90,3 +90,15 @@ it('shows the known single file count while its completion count remains zero',(
  expect(screen.getByLabelText('Current file progress')).toHaveAttribute('value','69');
  expect(screen.getByLabelText('Album progress')).toHaveAttribute('value','69');
 });
+it('opens the tag editor for an active job',()=>{
+ HTMLDialogElement.prototype.showModal=function(){this.setAttribute('open','');};
+ render(<JobCard job={{...job,custom_fields:{tag:'Nature'},filename_position:'end'}} action={vi.fn()}/>);
+ fireEvent.click(screen.getByLabelText('Edit filename tag'));
+ expect(screen.getByRole('dialog',{name:'Edit filename tag'})).toBeVisible();
+ expect(screen.getByLabelText('Tag (optional)')).toHaveValue('Nature');
+ expect(screen.getByLabelText('Position')).toHaveValue('end');
+});
+it('locks tag editing during publication',()=>{
+ render(<JobCard job={{...job,phase:'publishing'}} action={vi.fn()}/>);
+ expect(screen.getByLabelText('Edit filename tag')).toBeDisabled();
+});

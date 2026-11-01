@@ -189,3 +189,17 @@ For confirmed single-file routes (including Filester `/d/` links), `total_files`
 ### Server network information
 
 `GET /api/network` requires an administrator session (app tokens cannot access it). Returns `ip`, `city`, `country`, `isp`, `checked_at`, `stale`, and `error`. IP/location/ISP/timestamp fields may be null when the provider is unavailable. Results are cached for five minutes (failed lookups for 30 seconds). The sidebar requests information once at initialisation, without polling. The lookup uses a fixed HTTPS service (ipwho.is), disables proxy-environment discovery and redirects, and never accepts arbitrary target URLs. The observed IP may differ from specific download destinations with split routing or another address family.
+
+
+### Amend filename tags while a job is running
+
+`PATCH /api/downloads/{id}` accepts `custom_fields` and/or `filename_position` (`start` or `end`) using an administrator session with CSRF, or a scoped app token. At least one field is required. `custom_fields` replaces the field dictionary; preserve any existing creator/collection values when editing only `tag`. Clear the dictionary with `{}` to remove all fields. Validation and limits match download creation. The response is the updated job, and live events report the amended metadata.
+
+```json
+{
+  "custom_fields": {"creator": "Alice", "tag": "Nature"},
+  "filename_position": "end"
+}
+```
+
+Changes are allowed for queued/downloading jobs and jobs awaiting retry; completed jobs and active publication return 409. The temporary filename and `.part` file stay stable, so changing a tag does not restart the active transfer. With In Progress storage, the latest accepted fields apply to every staged file when published, including files completed earlier in the job and matching video subtitles. In immediate-save mode, edits apply when the current and subsequent files finish; files already saved keep their names. Publication freezes the accepted metadata before applying names, preventing accepted edits from being lost at the publication boundary. Retry retains the original transfer naming snapshot, filename map and partial files. A naming collision never overwrites another file.

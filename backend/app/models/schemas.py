@@ -43,6 +43,21 @@ class DownloadCreate(Strict):
                 raise ValueError('Category cannot be blank')
         return self
 
+class DownloadNamingPatch(Strict):
+    custom_fields: dict[str, str] | None = Field(default=None, max_length=10)
+    filename_position: Literal['start','end'] | None = None
+
+    @field_validator('custom_fields')
+    @classmethod
+    def fields_valid(cls, value):
+        return DownloadCreate.custom_fields_valid(value) if value is not None else None
+
+    @model_validator(mode='after')
+    def require_change(self):
+        if self.custom_fields is None and self.filename_position is None:
+            raise ValueError('Provide filename fields or their position')
+        return self
+
 class DestinationCreate(Strict):
     name: str = Field(min_length=1, max_length=60)
     path: str = Field(max_length=1024)

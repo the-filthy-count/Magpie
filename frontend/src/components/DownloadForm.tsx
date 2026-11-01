@@ -1,6 +1,7 @@
+import HelpTooltip from "./HelpTooltip";
 import DestinationPicker from "./DestinationPicker";
 import { useState, useEffect } from "react";
-import { ArrowDownToLine, ArrowUpRight, Folder, LoaderCircle, ShieldCheck, Link2, Clipboard } from "lucide-react";
+import { ArrowDownToLine, ArrowUpRight, Folder, LoaderCircle, ShieldCheck, Link2, Clipboard, Info } from "lucide-react";
 import { api, Destination } from "../services/api";
 export default function DownloadForm({
   destinations,
@@ -13,6 +14,8 @@ export default function DownloadForm({
 }) {
   const [url, setUrl] = useState(""),
     [destination, setDestination] = useState(""),
+    [tag, setTag] = useState(""),
+    [position, setPosition] = useState<"start" | "end">("start"),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   useEffect(() => {
@@ -35,14 +38,17 @@ export default function DownloadForm({
       <form
         onSubmit={async (e) => {
           e.preventDefault();
+          if (busy) return;
           setBusy(true);
           setError("");
           try {
             await api("/downloads", "POST", {
               url,
               destination_id: destination,
+              ...(tag.trim() ? { custom_fields: { tag: tag.trim() }, filename_position: position } : {}),
             });
             setUrl("");
+            setTag("");
             onCreated();
           } catch (e) {
             setError((e as Error).message);
@@ -90,6 +96,13 @@ export default function DownloadForm({
               </button>
             )}
           </span>
+          <div className="filename-tag-controls">
+            <div className="filename-tag-field">
+              <div className="filename-tag-label"><label htmlFor="download-tag">Tag <span>(optional)</span></label><HelpTooltip label="About filename tags" icon={<Info size={14}/>}>Add this tag to every filename in the download. Prefix: tag - filename.ext. Suffix: filename - tag.ext. The extension is preserved; unsafe filename characters are sanitised.</HelpTooltip></div>
+              <input id="download-tag" value={tag} onChange={e => setTag(e.target.value)} placeholder="Add a filename tag…" maxLength={100} disabled={busy} autoComplete="off" />
+            </div>
+            <label className="filename-tag-position" htmlFor="download-tag-position">Position<select id="download-tag-position" value={position} onChange={e => setPosition(e.target.value as "start" | "end")} disabled={busy}><option value="start">Prefix</option><option value="end">Suffix</option></select></label>
+          </div>
           <button
             className="primary pluck"
             disabled={busy || !destination || !url}

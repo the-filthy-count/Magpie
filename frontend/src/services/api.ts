@@ -54,6 +54,8 @@ export type Job = {
   completed_at: string | null;
   error: string | null;
   attempts: number;
+  custom_fields?: Record<string,string>;
+  filename_position?: "start" | "end";
 };
 export type Destination = {
   organisation?: string;

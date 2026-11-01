@@ -1,15 +1,19 @@
+import JobTagEditor from "./JobTagEditor";
 import { useState } from "react";
-import { ArrowDownToLine, Check, ChevronRight, Clock3, Folder, LoaderCircle, RefreshCw, Trash2, X, Link2 } from "lucide-react";
+import { ArrowDownToLine, Check, ChevronRight, Clock3, Folder, LoaderCircle, RefreshCw, Trash2, X, Link2, Tags } from "lucide-react";
 import { bytes, date, Job, Destination } from "../services/api";
 const active = (j: Job) => ["queued", "downloading"].includes(j.status);
 export default function JobCard({
   job: j,
   action,
+  onUpdated,
 }: {
   job: Job;
+  onUpdated?: () => void | Promise<void>;
   action: (p: string, m?: string) => Promise<void>;
 }) {
   const [details, setDetails] = useState(false);
+  const [editingTag, setEditingTag] = useState(false);
   const handled = j.files + j.skipped;
   const measuredFile = j.file_total && j.file_bytes != null
     ? Math.min(100, (j.file_bytes / j.file_total) * 100) : null;
@@ -57,6 +61,7 @@ export default function JobCard({
             {bytes(j.bytes)}
             {j.speed != null ? " · " + bytes(j.speed) + "/s" : ""}
           </span>
+          {j.custom_fields?.tag && <span title="Filename tag"><Tags size={12}/>{j.custom_fields.tag} · {j.filename_position==='end'?'suffix':'prefix'}</span>}
           {!active(j) && (
             <span className="job-time">{date(j.completed_at)}</span>
           )}
@@ -64,6 +69,7 @@ export default function JobCard({
 
       </div>
       <div className="job-actions">
+        {active(j) && <button type="button" className="icon-button" title={j.phase==='publishing' ? 'Tags are locked while publishing' : 'Edit filename tag'} aria-label="Edit filename tag" disabled={j.phase==='publishing'} onClick={()=>setEditingTag(true)}><Tags size={16}/></button>}
         {active(j) ? (
           <button
             title="Cancel download"
@@ -139,6 +145,7 @@ export default function JobCard({
             <dt>Destination</dt>
             <dd>{j.destination_path}</dd>
             {j.staging_path && <><dt>In Progress</dt><dd>{j.staging_path}</dd></>}
+            {Object.keys(j.custom_fields||{}).length>0 && <><dt>Filename fields</dt><dd>{Object.values(j.custom_fields||{}).join(' · ')} · {j.filename_position==='end'?'suffix':'prefix'}</dd></>}
             <dt>Queued</dt>
             <dd>{date(j.created_at)}</dd>
             <dt>Started</dt>
@@ -151,6 +158,7 @@ export default function JobCard({
           {j.error && <p className="form-error">{j.error}</p>}
         </div>
       )}
+      {editingTag && <JobTagEditor job={j} onClose={()=>setEditingTag(false)} onSaved={()=>{void onUpdated?.();}}/>}
     </article>
   );
 }

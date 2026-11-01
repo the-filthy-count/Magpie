@@ -174,7 +174,7 @@ export default function HistoryPage({
       </div>
       <div className="job-list">
         {results.length ? (
-          results.map((j) => <JobCard key={j.id} job={j} action={action} />)
+          results.map((j) => <JobCard key={j.id} job={j} action={action} onUpdated={reload} />)
         ) : (
           <Empty
             icon={<ListRestart />}

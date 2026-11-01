@@ -207,3 +207,23 @@ def test_merged_video_publishes_from_staging(tmp_path,media,monkeypatch):
     result=subprocess.run(['ffprobe','-v','error','-show_entries','stream=codec_type','-of','json',str(files[0])],capture_output=True,text=True,check=True)
     assert {s['codec_type'] for s in json.loads(result.stdout)['streams']}=={'audio','video'}
     assert any(e.get('phase')=='publishing' for e in events)
+
+
+@pytest.mark.parametrize('staged',[False,True])
+def test_live_labels_preserve_merged_video_and_subtitles(tmp_path,media,monkeypatch,staged):
+    from app.downloads.naming import write_control
+    final=tmp_path/'published';final.mkdir();shared=tmp_path/'shared';shared.mkdir()
+    control=write_control(tmp_path,dict(id='video-job',custom_fields={'tag':'New'},filename_position='end'),frozen=True)
+    additions=dict(naming_control=control,filename_baseline=dict(custom_fields={'tag':'Old'},filename_position='start'),job_id='video-job')
+    if staged:additions.update(publish_destination=str(final),published_archive=str(shared))
+    script=SCRIPT.replace("merge=spec.pop('merge',False)", "merge=spec.pop('merge',False)\nfixtures['/sub.vtt']=b'WEBVTT\\n\\n00:00.000 --> 00:00.800\\nFixture caption\\n'")
+    script=script.replace("'formats':[", "'subtitles':{'en':[{'ext':'vtt','url':'https://93.184.216.34/sub.vtt'}]},'formats':[")
+    script=script.replace('sys.exit(run(spec))',f'spec.update({additions!r})\nsys.exit(run(spec))')
+    monkeypatch.setitem(globals(),'SCRIPT',script)
+    root,events=execute(tmp_path,media,merge=True,settings={'organisation':'flat','subtitles':'manual','subtitle_languages':['en']})
+    output=final if staged else root
+    videos=list(output.glob('*.mp4'));assert len(videos)==1
+    assert videos[0].name.endswith(' - New.mp4')
+    subtitles=list(output.glob('*.vtt'));assert len(subtitles)==1
+    assert subtitles[0].name.startswith(videos[0].stem+'.')
+    assert 'Fixture caption' in subtitles[0].read_text()

@@ -42,7 +42,13 @@ def run(spec):
     if settings['organisation']=='flat_gallery':
         install_gallery_prefix()
     from app.downloads.options import install_custom_fields
-    install_custom_fields(spec.get('custom_fields', {}), spec.get('filename_position', 'start'))
+    live_naming = None
+    if spec.get('naming_control'):
+        from app.downloads.naming import LiveNaming
+        live_naming = LiveNaming(root, archive, spec)
+        live_naming.install()
+    else:
+        install_custom_fields(spec.get('custom_fields', {}), spec.get('filename_position', 'start'))
     # Organised mode uses the extractor's native metadata-aware layout.
     # Native layouts avoid imposing absent creator/gallery metadata globally.
     if spec.get('cookie'):
@@ -174,15 +180,22 @@ def run(spec):
             emit(error='yt-dlp could not download media from this URL. The page may be unsupported or require cookies; check site availability and authentication.')
         else:
             emit(error=f'gallery-dl exited with status {task.status}. Check site support, cookies, rate limits and destination permissions.')
+    if not task.status and live_naming and not publish_destination:
+        live_naming.finish_pending()
+        if live_naming.last_source:
+            emit(current_filename=live_naming.last_source.name)
     if not task.status and publish_destination:
         emit(phase='publishing', speed=None)
         from app.downloads.staging import publish_files, merge_archive
         try:
-            publish_files(root, publish_destination, spec['job_id'])
+            mapper = live_naming.mapper(live_naming.latest(freeze=True)) if live_naming else None
+            publish_files(root, publish_destination, spec['job_id'], mapper=mapper)
         except FileExistsError:
             emit(error='Publication found a conflicting destination filename. Existing files were not overwritten; staged files are retained for retry.')
             return 1
         merge_archive(archive / 'archive.sqlite3', Path(spec['published_archive']) / 'archive.sqlite3')
+        if live_naming and live_naming.last_source:
+            emit(current_filename=mapper(live_naming.last_source).name)
         # Sources are retained until every file is published and the shared archive commits.
         import shutil
         for child in root.iterdir():

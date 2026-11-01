@@ -17,7 +17,14 @@ def test_fifo_concurrency_and_recovery(tmp_path):
             await asyncio.sleep(.15);running-=1
             store.execute("UPDATE jobs SET status='completed' WHERE id=?",(row['id'],))
         q.execute=execute
-        await q.start();await asyncio.sleep(.9);await q.stop()
+        await q.start()
+        try:
+            async def finished():
+                while store.one("SELECT COUNT(*) AS count FROM jobs WHERE status='completed'")['count'] < 5:
+                    await asyncio.sleep(.02)
+            await asyncio.wait_for(finished(), 5)
+        finally:
+            await q.stop()
         assert started==['0','1','2','3','4'];assert peak==2
         assert store.one("SELECT status FROM jobs WHERE id='interrupted'")['status']=='interrupted'
     asyncio.run(scenario())

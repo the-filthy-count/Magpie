@@ -31,7 +31,7 @@ from app.database.store import Store
 from app.downloads.queue import Queue, now
 from app.models.schemas import (Credentials, Login, PasswordChange, DownloadCreate,
                                DestinationCreate, DestinationPatch, Settings, JobView, DestinationView,
-                               ApiTokenCreate, ApiTokenView, ApiTokenIssued, NetworkView)
+                               ApiTokenCreate, ApiTokenView, ApiTokenIssued, NetworkView, DownloadNamingPatch)
 
 VERSION = '1.0.0'
 TERMINAL = ('completed', 'failed', 'cancelled', 'interrupted')
@@ -46,7 +46,7 @@ def create_app(config_dir=None, roots=None, start_queue=True):
     directory = config['dir']
     os.umask(0o077)
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
-    for name in ('cookies', 'archives'):
+    for name in ('cookies', 'archives', 'job-controls'):
         (directory / name).mkdir(exist_ok=True, mode=0o700)
     store = Store(directory / 'magpie.sqlite3')
     setup_path = directory / 'setup-token'
@@ -120,7 +120,7 @@ def create_app(config_dir=None, roots=None, start_queue=True):
             if not token_row:
                 raise HTTPException(401, 'API token is invalid, expired or revoked')
             path, method = request.url.path, request.method
-            allowed = (method == 'GET' and (path in ('/api/destinations', '/api/downloads', '/api/events', '/api/version', '/api/openapi.json') or re.fullmatch(r'/api/downloads/[a-f0-9]{32}', path))) or (method == 'POST' and (path == '/api/downloads' or re.fullmatch(r'/api/downloads/[a-f0-9]{32}/(cancel|retry)', path))) or (method == 'DELETE' and (path == '/api/downloads' or re.fullmatch(r'/api/downloads/[a-f0-9]{32}', path)))
+            allowed = (method == 'GET' and (path in ('/api/destinations', '/api/downloads', '/api/events', '/api/version', '/api/openapi.json') or re.fullmatch(r'/api/downloads/[a-f0-9]{32}', path))) or (method == 'POST' and (path == '/api/downloads' or re.fullmatch(r'/api/downloads/[a-f0-9]{32}/(cancel|retry)', path))) or (method == 'PATCH' and re.fullmatch(r'/api/downloads/[a-f0-9]{32}', path)) or (method == 'DELETE' and (path == '/api/downloads' or re.fullmatch(r'/api/downloads/[a-f0-9]{32}', path)))
             if not allowed:
                 raise HTTPException(403, 'API tokens can submit, monitor, cancel or retry downloads, delete finished history and read destinations')
             return {'api_token': token_row['id'], 'token': digest}
@@ -380,6 +380,28 @@ def create_app(config_dir=None, roots=None, start_queue=True):
     @app.get('/api/downloads/{ident}', response_model=JobView, dependencies=[Depends(auth)])
     def job_details(ident: str):
         return get_job(ident)
+    @app.patch('/api/downloads/{ident}', response_model=JobView, dependencies=[Depends(auth)])
+    def amend_download(ident: str, body: DownloadNamingPatch):
+        from app.downloads.naming import write_control
+        with store.db() as db:
+            db.execute('BEGIN IMMEDIATE')
+            existing = db.execute('SELECT * FROM jobs WHERE id=?', (ident,)).fetchone()
+            if not existing:
+                raise HTTPException(404, 'Download not found')
+            row = dict(existing)
+            if row['status'] == 'completed' or (row['status'] == 'downloading' and row['phase'] == 'publishing'):
+                raise HTTPException(409, 'Filename tags are locked once publication starts')
+            baseline = row.get('filename_baseline') or json.dumps(dict(custom_fields=json.loads(row['custom_fields']), filename_position=row['filename_position']))
+            if body.custom_fields is not None:
+                row['custom_fields'] = json.dumps(body.custom_fields)
+            if body.filename_position is not None:
+                row['filename_position'] = body.filename_position
+            # File and DB updates are serialised with the queue's publication
+            # handshake so accepted edits cannot miss final publication.
+            write_control(config['dir'], row)
+            db.execute('UPDATE jobs SET custom_fields=?,filename_position=?,filename_baseline=? WHERE id=?', (row['custom_fields'], row['filename_position'], baseline, ident))
+        return get_job(ident)
+
     @app.post('/api/downloads/{ident}/cancel', dependencies=[Depends(auth)])
     def cancel(ident: str):
         get_job(ident)
@@ -525,7 +547,7 @@ def create_app(config_dir=None, roots=None, start_queue=True):
                     continue
                 if path in ('/api/health', '/api/auth/setup', '/api/auth/login', '/api/auth/status'):
                     continue
-                allowed = app_access and (method == 'get' or (method == 'post' and (path == '/api/downloads' or path.endswith(('/cancel', '/retry')))) or (method == 'delete' and (path == '/api/downloads' or path == '/api/downloads/{ident}')))
+                allowed = app_access and (method == 'get' or (method == 'post' and (path == '/api/downloads' or path.endswith(('/cancel', '/retry')))) or (method == 'patch' and path == '/api/downloads/{ident}') or (method == 'delete' and (path == '/api/downloads' or path == '/api/downloads/{ident}')))
                 operation['security'] = [{'AdminSession': []}] + ([{'AppToken': []}] if allowed else [])
         return schema
     # SPA fallback must not hide unknown API endpoints.

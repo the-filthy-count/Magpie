@@ -93,7 +93,7 @@ def _matches(source_fd, name, directory_fd):
         os.close(fd)
 
 
-def publish_files(source, destination, ident):
+def publish_files(source, destination, ident, mapper=None):
     source, destination = Path(source), Path(destination)
     # Validate the full inventory before exposing any files. Directory traversal
     # uses no-follow directory descriptors to prevent symlink replacement races.
@@ -106,13 +106,16 @@ def publish_files(source, destination, ident):
             relative = (Path(current) / name).relative_to(source)
             if name.endswith(('.part', '.ytdl')) or name.startswith('.magpie-transfer-') or '.magpie-in-progress' in relative.parts:
                 raise ValueError('Unfinished temporary files remain; retry before publishing')
-            inventory.append(relative)
+            target = Path(mapper(relative)) if mapper else relative
+            if target.is_absolute() or '..' in target.parts or target.parent != relative.parent or target.name.startswith('.magpie-'):
+                raise ValueError('Invalid tagged publication path')
+            inventory.append((relative, target))
     root_fd = os.open(destination, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     stage_fd = os.open(source, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     try:
-        for relative in inventory:
+        for relative, target in inventory:
             src_dir = _directory(stage_fd, relative.parts[:-1])
-            dst_dir = _directory(root_fd, relative.parts[:-1])
+            dst_dir = _directory(root_fd, target.parts[:-1])
             src_fd = None
             temporary = '.magpie-transfer-' + ident
             try:
@@ -120,14 +123,14 @@ def publish_files(source, destination, ident):
                 import stat
                 if not stat.S_ISREG(os.fstat(src_fd).st_mode):
                     raise PermissionError('Only regular files can be published')
-                if _matches(src_fd, relative.name, dst_dir):
+                if _matches(src_fd, target.name, dst_dir):
                     continue
                 try:
                     # Same filesystem: publish atomically without copying or overwriting.
-                    os.link(relative.name, relative.name, src_dir_fd=src_dir, dst_dir_fd=dst_dir, follow_symlinks=False)
+                    os.link(relative.name, target.name, src_dir_fd=src_dir, dst_dir_fd=dst_dir, follow_symlinks=False)
                 except OSError as exc:
                     if exc.errno == errno.EEXIST:
-                        if not _matches(src_fd, relative.name, dst_dir):
+                        if not _matches(src_fd, target.name, dst_dir):
                             raise
                     elif exc.errno == errno.EXDEV:
                         # Other filesystem: copy to a hidden temporary file, sync,
@@ -145,9 +148,9 @@ def publish_files(source, destination, ident):
                                 stream.flush()
                                 os.fsync(stream.fileno())
                             try:
-                                os.link(temporary, relative.name, src_dir_fd=dst_dir, dst_dir_fd=dst_dir, follow_symlinks=False)
+                                os.link(temporary, target.name, src_dir_fd=dst_dir, dst_dir_fd=dst_dir, follow_symlinks=False)
                             except FileExistsError:
-                                if not _matches(src_fd, relative.name, dst_dir):
+                                if not _matches(src_fd, target.name, dst_dir):
                                     raise
                         finally:
                             os.unlink(temporary, dir_fd=dst_dir)

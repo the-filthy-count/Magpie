@@ -2128,3 +2128,22 @@ img.avatar { display:block; object-fit:cover; border:0; background:transparent; 
 .network-status code { display:block; font-size:13px; font-weight:600; overflow-wrap:anywhere; margin:3px 0 6px; color:#002C46; }
 .network-status p { margin:3px 0; overflow-wrap:anywhere; color:#496171; line-height:1.5; }
 .network-status .network-stale { font-size:10px; }
+
+/* Filename tags share the API's literal prefix/suffix behaviour. */
+.download-controls { flex-wrap:wrap; }
+.download-controls > .selected-path { min-width:80px; }
+.filename-tag-controls { display:flex; align-items:flex-end; gap:10px; flex:0 1 350px; min-width:250px; }
+.filename-tag-field { flex:1; min-width:0; }
+.filename-tag-label { display:flex; align-items:center; gap:5px; margin-bottom:6px; min-height:18px; }
+.filename-tag-label label,.filename-tag-position { font-size:11px; color:#496171; }
+.filename-tag-label label span { font-size:10px; }
+:root .download-panel .filename-tag-label .help-tooltip > button { width:18px; min-width:18px; height:18px; min-height:18px; padding:0; border:0; border-radius:4px; background:transparent; color:#005454; }
+.filename-tag-position { display:flex; flex-direction:column; gap:6px; flex:0 0 100px; }
+:root .download-panel .filename-tag-controls :is(input,select) { width:100%; min-width:0; height:40px; padding:9px 11px; border:1px solid #C8D7E2; border-radius:8px; background:#FFF; font-size:12px; }
+.download-controls > .pluck { align-self:flex-end; }
+@media (max-width:1100px) { .filename-tag-controls { flex:1 1 280px; } }
+@media (max-width:600px) { .download-controls > .destination-picker { flex-basis:100%; } .filename-tag-controls { flex-basis:100%; min-width:0; } .download-controls > .pluck { width:100%; } }
+
+.tag-dialog form { display:flex; flex-direction:column; gap:10px; margin-top:20px; }
+.tag-dialog .button-row { margin-top:12px; }
+.tag-dialog label { font-size:12px; }

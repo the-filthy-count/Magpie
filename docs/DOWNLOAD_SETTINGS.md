@@ -115,3 +115,10 @@ Exclude `.magpie-in-progress`, custom staging storage and `.magpie-transfer-*` f
 ## Pixeldrain availability
 
 Pixeldrain album progress uses its native list file count, including unavailable items. If the service flags a file as requiring a CAPTCHA or otherwise unavailable, Magpie reports that reason and keeps the job incomplete. With whole-job staging enabled, completed files remain in In Progress for retry; they are not discarded or published as a complete album. The terminal gallery-dl command can download available files before ultimately exiting with an error for a blocked item. Retry after the website restriction clears; native archives skip previously completed transfers.
+
+
+## Filename tags in the interface
+
+The download form has an optional **Tag** and **Prefix/Suffix** selector immediately before **Pluck**. A tag is literal text (up to 100 characters), uses the existing API filename-field mechanism and is inserted before the extension when used as a suffix. The URL and tag clear after successful submission. The chosen position remains selected for the next submission.
+
+Use the tag icon on an active download card to amend or clear the tag, or change its position. Other API-provided filename fields are preserved. These edits leave in-flight temporary filenames alone. With In Progress storage, the latest tag is applied to the whole staged job at publication, including matching subtitle filenames. With immediate saving, it applies to the current and remaining files; earlier published filenames are unchanged. Editing locks once publication starts. Fields and stable transfer naming snapshots are persisted in SQLite, with private control files under `/config/job-controls` and per-job filename maps in the archive directory.

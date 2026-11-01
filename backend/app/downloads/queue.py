@@ -71,6 +71,13 @@ class Queue:
         process = None
         error = None
         try:
+            from app.downloads.naming import write_control
+            with self.store.db() as db:
+                db.execute('BEGIN IMMEDIATE')
+                row = dict(db.execute('SELECT * FROM jobs WHERE id=?', (row['id'],)).fetchone())
+                baseline = row.get('filename_baseline') or json.dumps(dict(custom_fields=json.loads(row['custom_fields']), filename_position=row['filename_position']))
+                db.execute('UPDATE jobs SET filename_baseline=? WHERE id=?', (baseline, row['id']))
+                control = write_control(self.config['dir'], row)
             from app.core.security import destination_path
             path = destination_path(row['destination_path'], self.config['roots'])
             archive = self.config['dir'] / 'archives' / (row.get('archive_id') or row['destination_id'])
@@ -92,6 +99,7 @@ class Queue:
             from app.downloads.options import effective_settings
             settings = effective_settings(settings, row['website'], row.get('organisation_override'))
             spec = dict(url=row['url'], destination_path=path, archive=str(archive), cookie=cookie, settings=settings, custom_fields=json.loads(row.get('custom_fields') or '{}'), filename_position=row.get('filename_position') or 'start')
+            spec.update(naming_control=control, filename_baseline=json.loads(baseline), job_id=row['id'])
             if staging:
                 spec.update(destination_path=staging, publish_destination=path, published_archive=str(published_archive), job_id=row['id'])
             env = {k: v for k, v in os.environ.items() if k.upper() not in
@@ -110,6 +118,14 @@ class Queue:
                 async for line in process.stdout:
                     try:
                         event = json.loads(line)
+                        if event.get('phase') == 'publishing':
+                            with self.store.db() as db:
+                                db.execute('BEGIN IMMEDIATE')
+                                current = dict(db.execute('SELECT * FROM jobs WHERE id=?', (row['id'],)).fetchone())
+                                if not current['cancel_requested']:
+                                    db.execute("UPDATE jobs SET phase='publishing',speed=NULL WHERE id=?", (row['id'],))
+                                    write_control(self.config['dir'], current, frozen=True)
+                            continue
                         if 'error' in event:
                             error = str(event['error'])[:500]
                         allowed = {'files','skipped','bytes','speed','current_filename','file_bytes','file_total','total_files','phase','engine','engine_extractor'}

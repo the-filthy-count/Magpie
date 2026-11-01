@@ -277,7 +277,7 @@ export default function App() {
                   working
                     .slice()
                     .reverse()
-                    .map((j) => <JobCard key={j.id} job={j} action={action} />)
+                    .map((j) => <JobCard key={j.id} job={j} action={action} onUpdated={reload} />)
                 ) : (
                   <Empty
                     icon={<ArrowDownToLine />}
@@ -300,7 +300,7 @@ export default function App() {
                   .filter((j) => !active(j))
                   .slice(0, 4)
                   .map((j) => (
-                    <JobCard key={j.id} job={j} action={action} />
+                    <JobCard key={j.id} job={j} action={action} onUpdated={reload} />
                   ))}
                 {!jobs.some((j) => !active(j)) && (
                   <div className="quiet-empty">
