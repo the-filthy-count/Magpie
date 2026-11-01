@@ -2136,9 +2136,10 @@ img.avatar { display:block; object-fit:cover; border:0; background:transparent; 
 .filename-tag-field { flex:1; min-width:0; }
 .filename-tag-label { display:flex; align-items:center; gap:5px; margin-bottom:6px; min-height:18px; }
 .filename-tag-label label,.filename-tag-position { font-size:11px; color:#496171; }
+.filename-tag-label label { display:inline-flex; flex-direction:row; align-items:baseline; gap:4px; white-space:nowrap; line-height:18px; }
 .filename-tag-label label span { font-size:10px; }
 :root .download-panel .filename-tag-label .help-tooltip > button { width:18px; min-width:18px; height:18px; min-height:18px; padding:0; border:0; border-radius:4px; background:transparent; color:#005454; }
-.filename-tag-position { display:flex; flex-direction:column; gap:6px; flex:0 0 100px; }
+.filename-tag-position { display:flex; flex-direction:column; gap:6px; flex:0 0 100px; line-height:18px; }
 :root .download-panel .filename-tag-controls :is(input,select) { width:100%; min-width:0; height:40px; padding:9px 11px; border:1px solid #C8D7E2; border-radius:8px; background:#FFF; font-size:12px; }
 .download-controls > .pluck { align-self:flex-end; }
 @media (max-width:1100px) { .filename-tag-controls { flex:1 1 280px; } }
