@@ -87,7 +87,7 @@ sys.exit(run(spec))
     second=attempt(script)
     assert second.returncode==0,second.stdout+second.stderr
     events=[json.loads(line) for line in second.stdout.splitlines()]
-    assert any(e.get('skipped')==1 for e in events)
+    assert any(e.get('previously_downloaded')==1 for e in events)
     assert any(e.get('files')==1 for e in events)
     assert any(e.get('phase')=='publishing' for e in events)
     assert (destination/'first.png').read_bytes()==PNG and (destination/'second.png').read_bytes()==PNG
@@ -100,7 +100,7 @@ sys.exit(run(spec))
     spec.update(destination_path=str(new_stage),archive=str(new_private),job_id='next-job')
     third=attempt(script)
     assert third.returncode==0,third.stdout+third.stderr
-    assert any(json.loads(line).get('skipped')==2 for line in third.stdout.splitlines())
+    assert any(json.loads(line).get('previously_downloaded')==2 for line in third.stdout.splitlines())
     assert not list(new_stage.iterdir())
 
 
@@ -159,7 +159,7 @@ def test_real_publication_failure_keeps_archive_private_for_retry(tmp_path):
     assert not (archive/'archive.sqlite3').exists()
     target.unlink()
     second=attempt();assert second.returncode==0,second.stdout+second.stderr
-    assert any(json.loads(line).get('skipped')==1 for line in second.stdout.splitlines())
+    assert any(json.loads(line).get('previously_downloaded')==1 for line in second.stdout.splitlines())
     assert target.read_bytes()==PNG
 
 

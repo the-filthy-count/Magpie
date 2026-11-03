@@ -74,14 +74,36 @@ def test_finish_available_uses_worker_and_publication_handshake(tmp_path):
         (stage/'good.jpg').write_bytes(b'complete')
         (stage/'missing.mp4.part').write_bytes(b'unfinished')
         store=Store(tmp_path/'db.sqlite3');insert(store,'job','downloading')
-        store.execute("UPDATE jobs SET destination_path=?,staging_path=?,finish_available=1 WHERE id='job'",(str(destination),str(stage)))
+        store.execute("UPDATE jobs SET destination_path=?,staging_path=?,finish_available=1,total_files=2,files=1 WHERE id='job'",(str(destination),str(stage)))
         queue=Queue(store,{'dir':tmp_path,'roots':[tmp_path],'job_timeout':30})
         await queue.execute(store.one("SELECT * FROM jobs WHERE id='job'"),store.get('settings'))
         row=store.one("SELECT * FROM jobs WHERE id='job'")
-        assert row['status']=='completed',row['error']
+        assert row['status']=='partially_complete',row['error']
         assert row['phase']=='incomplete' and row['finish_available']==1
-        assert 'album incomplete' in row['error']
+        assert row['skipped']==1 and row['previously_downloaded']==0
+        assert 'Partially complete' in row['error']
         assert (destination/'good.jpg').read_bytes()==b'complete'
         assert (stage/'missing.mp4.part').read_bytes()==b'unfinished'
         assert not (stage/'good.jpg').exists()
     asyncio.run(scenario())
+
+
+def test_existing_partial_completions_are_migrated(tmp_path):
+    path=tmp_path/'db.sqlite3';store=Store(path)
+    insert(store,'partial','completed');insert(store,'full','completed')
+    store.execute("UPDATE jobs SET finish_available=1 WHERE id='partial'")
+    reopened=Store(path)
+    assert reopened.one("SELECT status FROM jobs WHERE id='partial'")['status']=='partially_complete'
+    assert reopened.one("SELECT status FROM jobs WHERE id='full'")['status']=='completed'
+
+
+def test_existing_archive_skip_counts_are_migrated(tmp_path):
+    import sqlite3
+    path=tmp_path/'db.sqlite3';store=Store(path);insert(store,'old','failed')
+    with sqlite3.connect(path) as db:
+        db.execute('ALTER TABLE jobs DROP COLUMN previously_downloaded')
+        db.execute('UPDATE jobs SET skipped=7')
+    migrated=Store(path)
+    row=migrated.one("SELECT * FROM jobs WHERE id='old'")
+    assert row['previously_downloaded']==7 and row['skipped']==0
+    assert Store(path).one("SELECT * FROM jobs WHERE id='old'")['previously_downloaded']==7

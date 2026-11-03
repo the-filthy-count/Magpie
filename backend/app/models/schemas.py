@@ -177,13 +177,14 @@ class JobView(BaseModel):
     destination_id: str
     destination_name: str
     destination_path: str
-    status: Literal['queued','downloading','completed','failed','cancelled','interrupted']
+    status: Literal['queued','downloading','completed','partially_complete','failed','cancelled','interrupted']
     created_at: str
     started_at: str | None
     completed_at: str | None
     files: int
     total_files: int | None = None
     skipped: int
+    previously_downloaded: int = 0
     bytes: int
     speed: float | None
     current_filename: str | None
@@ -208,13 +209,13 @@ class JobView(BaseModel):
     @property
     def file_progress_percent(self) -> float | None:
         from app.core.progress import progress_fields
-        return progress_fields(dict(file_bytes=self.file_bytes,file_total=self.file_total,files=self.files,skipped=self.skipped,total_files=self.total_files))['file_progress_percent']
+        return progress_fields(dict(file_bytes=self.file_bytes,file_total=self.file_total,files=self.files,skipped=self.skipped,previously_downloaded=self.previously_downloaded,total_files=self.total_files))['file_progress_percent']
 
     @computed_field(description='Album completion, 0–100; mirrors file progress for confirmed single-file jobs, otherwise uses handled file counts')
     @property
     def album_progress_percent(self) -> float | None:
         from app.core.progress import progress_fields
-        return progress_fields(dict(file_bytes=self.file_bytes,file_total=self.file_total,files=self.files,skipped=self.skipped,total_files=self.total_files))['album_progress_percent']
+        return progress_fields(dict(file_bytes=self.file_bytes,file_total=self.file_total,files=self.files,skipped=self.skipped,previously_downloaded=self.previously_downloaded,total_files=self.total_files))['album_progress_percent']
 
 class DestinationView(DestinationCreate):
     id: str

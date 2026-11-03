@@ -14,7 +14,8 @@ export default function JobCard({
 }) {
   const [details, setDetails] = useState(false);
   const [editingTag, setEditingTag] = useState(false);
-  const handled = j.files + j.skipped;
+  const previous = j.previously_downloaded ?? 0;
+  const handled = j.files + j.skipped + previous;
   const measuredFile = j.file_total && j.file_bytes != null
     ? Math.min(100, (j.file_bytes / j.file_total) * 100) : null;
   const singleFile = j.total_files === 1;
@@ -27,7 +28,7 @@ export default function JobCard({
       <div className={"site-icon " + (j.status === "completed" ? "done" : "")}>
         {j.status === "downloading" ? (
           <ArrowDownToLine size={21} />
-        ) : j.status === "completed" ? (
+        ) : ['completed','partially_complete'].includes(j.status) ? (
           j.finish_available ? <FolderOutput size={21}/> : <Check size={21} />
         ) : j.status === "queued" ? (
           <Clock3 size={21} />
@@ -42,7 +43,7 @@ export default function JobCard({
             {j.status === "downloading" && (
               <LoaderCircle className="spin" size={11} />
             )}{" "}
-            {j.status === 'completed' && j.finish_available ? 'Incomplete' : j.status === 'downloading' && j.phase === 'publishing' ? 'Publishing' : j.status.charAt(0).toUpperCase() + j.status.slice(1)}
+            {j.status === 'partially_complete' || (j.status === 'completed' && j.finish_available) ? 'Partially complete' : j.status === 'downloading' && j.phase === 'publishing' ? 'Publishing' : j.status.charAt(0).toUpperCase() + j.status.slice(1)}
           </span>
         </div>
         <div className="job-url" title={j.url}>
@@ -55,7 +56,7 @@ export default function JobCard({
           </span>
           <span>
             {active(j) ? j.total_files ? `${j.total_files} ${j.total_files === 1 ? 'file' : 'files'} · ${j.files} completed` : `${j.files} completed` : `${j.files} ${j.files === 1 ? 'file' : 'files'}`}
-            {j.skipped ? ` · ${j.skipped} skipped` : ""}
+            {previous ? ` · ${previous} previously downloaded` : ""}{j.skipped ? ` · ${j.skipped} skipped` : ""}
           </span>
           <span>
             {bytes(j.bytes)}
@@ -132,7 +133,7 @@ export default function JobCard({
               {albumPct !== null ? <progress max={100} value={albumPct} aria-label="Album progress" /> : <div />}
             </div>
             <small className="current-file album-caption">
-              <span>{albumPct !== null ? j.total_files === 1 ? 'Album · 1 file' : `Album · ${handled} of ${j.total_files} files` : `Overall · ${handled} files handled · total unknown`}{j.skipped ? ` · ${j.skipped} skipped` : ""}</span>
+              <span>{albumPct !== null ? j.total_files === 1 ? 'Album · 1 file' : `Album · ${handled} of ${j.total_files} files` : `Overall · ${handled} files handled · total unknown`}{previous ? ` · ${previous} previously downloaded` : ""}{j.skipped ? ` · ${j.skipped} skipped` : ""}</span>
               {albumPct !== null && <span>{albumPct.toFixed(0)}%</span>}
             </small>
           </div>

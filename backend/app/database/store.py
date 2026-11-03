@@ -46,8 +46,12 @@ class Store:
             for name in ('engine', 'engine_extractor'):
                 if name not in columns:
                     db.execute(f'ALTER TABLE jobs ADD COLUMN {name} TEXT')
+            if 'previously_downloaded' not in columns:
+                db.execute('ALTER TABLE jobs ADD COLUMN previously_downloaded INTEGER NOT NULL DEFAULT 0')
+                db.execute('UPDATE jobs SET previously_downloaded=skipped,skipped=0')
             if 'finish_available' not in columns:
                 db.execute('ALTER TABLE jobs ADD COLUMN finish_available INTEGER NOT NULL DEFAULT 0')
+            db.execute("UPDATE jobs SET status='partially_complete' WHERE status='completed' AND finish_available=1")
             if 'filename_baseline' not in columns:
                 db.execute('ALTER TABLE jobs ADD COLUMN filename_baseline TEXT')
             if 'phase' not in columns:

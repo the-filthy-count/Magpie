@@ -14,10 +14,11 @@ def test_percentages_match_rest_and_live_events(admin,destination):
     job=admin.post('/api/downloads',headers=auth,json={'url':'https://example.com/gallery','category':'Pictures'}).json()
     assert job['file_progress_percent'] is None and job['album_progress_percent'] is None
     store=admin.app_ref.state.store
-    store.execute("UPDATE jobs SET status='downloading',files=6,skipped=2,total_files=20,file_bytes=50,file_total=100 WHERE id=?",(job['id'],))
+    store.execute("UPDATE jobs SET status='downloading',files=6,skipped=1,previously_downloaded=1,total_files=20,file_bytes=50,file_total=100 WHERE id=?",(job['id'],))
     for path in ('/api/downloads/'+job['id'],'/api/downloads'):
         data=admin.get(path,headers=auth).json()
         if isinstance(data,list):data=data[0]
+        assert data['previously_downloaded']==1 and data['skipped']==1
         assert data['file_progress_percent']==50.0 and data['album_progress_percent']==40.0
     endpoint=next(r.endpoint for r in admin.app_ref.routes if getattr(r,'path',None)=='/api/events')
     class Request:
@@ -26,10 +27,11 @@ def test_percentages_match_rest_and_live_events(admin,destination):
         response=await endpoint(Request(),{'api_token':token['id']})
         event=await anext(response.body_iterator)
         row=json.loads(event.split('data: ')[1])['downloads'][0]
+        assert row['previously_downloaded']==1 and row['skipped']==1
         assert row['file_progress_percent']==50.0 and row['album_progress_percent']==40.0
         await response.body_iterator.aclose()
     asyncio.run(read())
-    store.execute('UPDATE jobs SET files=20,skipped=0,file_bytes=NULL,file_total=NULL WHERE id=?',(job['id'],))
+    store.execute('UPDATE jobs SET files=20,skipped=0,previously_downloaded=0,file_bytes=NULL,file_total=NULL WHERE id=?',(job['id'],))
     result=admin.get('/api/downloads/'+job['id'],headers=auth).json()
     assert result['file_progress_percent'] is None and result['album_progress_percent']==100.0
 

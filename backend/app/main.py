@@ -34,7 +34,7 @@ from app.models.schemas import (Credentials, Login, PasswordChange, DownloadCrea
                                ApiTokenCreate, ApiTokenView, ApiTokenIssued, NetworkView, DownloadNamingPatch)
 
 VERSION = '1.0.0'
-TERMINAL = ('completed', 'failed', 'cancelled', 'interrupted')
+TERMINAL = ('partially_complete', 'completed', 'failed', 'cancelled', 'interrupted')
 logger = logging.getLogger('magpie')
 
 
@@ -389,7 +389,7 @@ def create_app(config_dir=None, roots=None, start_queue=True):
             if not existing:
                 raise HTTPException(404, 'Download not found')
             row = dict(existing)
-            if row['status'] == 'completed' or (row['status'] == 'downloading' and row['phase'] == 'publishing'):
+            if row['status'] in ('completed', 'partially_complete') or (row['status'] == 'downloading' and row['phase'] == 'publishing'):
                 raise HTTPException(409, 'Filename tags are locked once publication starts')
             baseline = row.get('filename_baseline') or json.dumps(dict(custom_fields=json.loads(row['custom_fields']), filename_position=row['filename_position']))
             if body.custom_fields is not None:
@@ -428,7 +428,7 @@ def create_app(config_dir=None, roots=None, start_queue=True):
         # URL DNS and original filesystem snapshot are revalidated at retry and execution.
         validate_url(row['url'])
         destination_path(row['destination_path'], config['roots'])
-        changed = store.execute("UPDATE jobs SET status='queued',finish_available=0,created_at=?,started_at=NULL,completed_at=NULL,error=NULL,files=0,skipped=0,bytes=0,speed=NULL,current_filename=NULL,file_bytes=NULL,file_total=NULL,total_files=NULL,cancel_requested=0,seq=(SELECT COALESCE(MAX(seq),0)+1 FROM jobs) WHERE id=? AND status IN ('failed','cancelled','interrupted')", (now(),ident))
+        changed = store.execute("UPDATE jobs SET status='queued',finish_available=0,created_at=?,started_at=NULL,completed_at=NULL,error=NULL,files=0,skipped=0,previously_downloaded=0,bytes=0,speed=NULL,current_filename=NULL,file_bytes=NULL,file_total=NULL,total_files=NULL,cancel_requested=0,seq=(SELECT COALESCE(MAX(seq),0)+1 FROM jobs) WHERE id=? AND status IN ('failed','cancelled','interrupted')", (now(),ident))
         if not changed:
             raise HTTPException(409, 'Only failed, cancelled or interrupted jobs may be retried')
         return get_job(ident)
@@ -536,7 +536,7 @@ def create_app(config_dir=None, roots=None, start_queue=True):
                 if not valid:
                     yield 'event: expired\ndata: {}\n\n'
                     break
-                current = {'downloads': store.all('SELECT id,status,phase,engine,engine_extractor,files,skipped,total_files,bytes,speed,current_filename,file_bytes,file_total,error,custom_fields,filename_position FROM jobs ORDER BY seq DESC LIMIT 200')}
+                current = {'downloads': store.all('SELECT id,status,phase,engine,engine_extractor,files,skipped,previously_downloaded,finish_available,total_files,bytes,speed,current_filename,file_bytes,file_total,error,custom_fields,filename_position FROM jobs ORDER BY seq DESC LIMIT 200')}
                 from app.core.progress import progress_fields
                 current['downloads'] = [{**row, 'custom_fields': json.loads(row['custom_fields']), **progress_fields(row)} for row in current['downloads']]
                 encoded = json.dumps(current)

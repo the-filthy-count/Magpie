@@ -90,7 +90,7 @@ def run(spec):
     PixeldrainExtractor._available = available
     completed_bytes = 0
     current_bytes = 0
-    files = skipped = 0
+    files = skipped = previously_downloaded = 0
     last = 0.0
     class Events(output.NullOutput):
         def start(self, path):
@@ -115,9 +115,9 @@ def run(spec):
             emit(files=files, bytes=completed_bytes, current_filename=Path(path).name,
                  file_bytes=None, file_total=None, speed=None)
         def skip(self, path):
-            nonlocal skipped
-            skipped += 1
-            emit(skipped=skipped)
+            nonlocal previously_downloaded
+            previously_downloaded += 1
+            emit(previously_downloaded=previously_downloaded)
     events = Events()
     from app.downloads.video import install_video_support
     install_video_support(root, settings, events)
@@ -137,7 +137,7 @@ def run(spec):
     videos_seen = 0
     class AlbumDownloadJob(job.DownloadJob):
         def handle_url(self, url, metadata):
-            nonlocal videos_seen
+            nonlocal videos_seen, skipped
             if settings['max_files'] and files >= settings['max_files']:
                 raise exception.StopExtraction()
             if metadata.get('_ytdl_info_dict') is not None:
@@ -145,6 +145,8 @@ def run(spec):
                     raise exception.StopExtraction()
                 videos_seen += 1
             if not accepts_file(settings, metadata):
+                skipped += 1
+                emit(skipped=skipped)
                 return
             title=gallery_name(metadata) or getattr(self,'_magpie_gallery','')
             if title:metadata['_magpie_gallery']=title

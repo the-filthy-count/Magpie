@@ -54,13 +54,13 @@ label does not redirect queued jobs or change their archive.
 | Field | Meaning |
 | --- | --- |
 | `file_progress_percent` | Current-file percentage (0–100), rounded to two decimals; null without a valid measured total |
-| `album_progress_percent` | Album percentage (0–100) by downloaded + skipped files; null without a valid known total |
+| `album_progress_percent` | Album percentage (0–100) by downloaded + previously downloaded + deliberately skipped files; null without a valid known total |
 | `status` | queued, downloading, completed, failed, cancelled, interrupted |
 | `current_filename` | Current file, when available |
 | `file_bytes`, `file_total` | Current file bytes and measured total; nullable |
 | `speed` | Bytes per second, or null when unavailable |
 | `bytes` | Cumulative transferred/finalized bytes for this attempt |
-| `files`, `skipped` | Successfully downloaded and skipped files this attempt |
+| `files`, `previously_downloaded`, `skipped` | Downloaded, previously downloaded, and deliberately skipped files this attempt |
 | `total_files` | Known gallery size; null when unknown (Bunkr albums supported) |
 
 These explicit percentage fields appear in individual/list REST responses and SSE
@@ -73,7 +73,7 @@ percentage becomes null until another measurable file starts, except confirmed
 single-file jobs, which keep both percentages at 100.
 
 Current file fraction: `file_bytes / file_total` only when the total is positive.
-Gallery fraction: `(files + skipped) / total_files` only when the total is known
+Gallery fraction: `(files + previously_downloaded + skipped) / total_files` only when the total is known
 and at least the number handled. Never infer a percentage when totals are null.
 Failures do not count as successful files. Retries reset attempt counters and
 consult destination-specific archives to skip previously completed media.
@@ -82,7 +82,7 @@ SSE emits an initial `update`, then changed snapshots at most once per second:
 
 ```text
 event: update
-data: {"downloads":[{"id":"...","status":"downloading","files":6,"skipped":2,"total_files":20,"bytes":123456,"speed":1024,"current_filename":"image.jpg","file_bytes":50,"file_total":100,"file_progress_percent":50.0,"album_progress_percent":40.0,"error":null}]}
+data: {"downloads":[{"id":"...","status":"downloading","files":6,"previously_downloaded":1,"skipped":1,"total_files":20,"bytes":123456,"speed":1024,"current_filename":"image.jpg","file_bytes":50,"file_total":100,"file_progress_percent":50.0,"album_progress_percent":40.0,"error":null}]}
 ```
 
 Snapshots include the latest 200 jobs, not the entire history. Poll a specific ID
@@ -208,4 +208,13 @@ Changes are allowed for queued/downloading jobs and jobs awaiting retry; complet
 
 `POST /api/downloads/{id}/finish-available` accepts a failed job with In Progress storage. It queues publication of the completed files without contacting the website or retrying failed files. Session authentication (with CSRF) and API tokens are supported. Active jobs and jobs without staging return `409`.
 
-The job uses the normal concurrency limit. On success, `status` is `completed`, `finish_available` is `true`, and `phase` is `incomplete`; the UI displays **Incomplete**. Counts and percentages remain measured, so album progress may remain below 100%. Only successfully retrieved entries are merged into the destination archive. Unfinished `.part`/`.ytdl` files remain in In Progress. Successful files use the latest filename tags, and conflicting destination files are never overwritten.
+The job uses the normal concurrency limit. On success, `status` is `partially_complete`, `finish_available` is `true`, and `phase` is `incomplete`; the UI displays **Partially complete**. Counts remain measured. When the album total is known, intentionally omitted remaining files count as skipped, so processing progress can reach 100% while the result remains partially complete. Only successfully retrieved entries are merged into the destination archive. Unfinished `.part`/`.ytdl` files remain in In Progress. Successful files use the latest filename tags, and conflicting destination files are never overwritten.
+
+
+### File counters
+
+- `files`: files successfully downloaded during this attempt.
+- `previously_downloaded`: files found in the native archive or already present on disk; no new download was needed.
+- `skipped`: deliberately excluded files (for example, media filters), including remaining known files omitted by **Finish with available files**. When the total is unknown, Magpie does not invent a count for missing files.
+
+Album processing progress is `(files + previously_downloaded + skipped) / total_files`. Both REST and SSE include these counters. Existing history is migrated so its old archive/existing-file skip counts appear under `previously_downloaded`.

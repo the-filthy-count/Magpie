@@ -108,11 +108,12 @@ export default function HistoryPage({
             "queued",
             "downloading",
             "completed",
+            "partially_complete",
             "failed",
             "cancelled",
             "interrupted",
           ].map((x) => (
-            <option key={x}>{x}</option>
+            <option key={x} value={x}>{x.replaceAll("_", " ")}</option>
           ))}
         </select>
         <input
@@ -127,7 +128,7 @@ export default function HistoryPage({
         />
         <datalist id="websites">
           {[...new Set(jobs.map((j) => j.website))].map((x) => (
-            <option key={x}>{x}</option>
+            <option key={x} value={x}>{x.replaceAll("_", " ")}</option>
           ))}
         </datalist>
         <select

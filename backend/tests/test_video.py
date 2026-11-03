@@ -85,7 +85,7 @@ def test_generic_video_fallback_and_archive(tmp_path,media):
     assert files[0].stat().st_size>0
     files[0].unlink()
     _,second=execute(tmp_path,media)
-    assert any(e.get('skipped')==1 for e in second)
+    assert any(e.get('previously_downloaded')==1 for e in second)
     assert not list(root.rglob('*.mp4'))
 
 

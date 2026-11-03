@@ -177,6 +177,6 @@ def test_tag_collision_never_overwrites_and_retry_renames_without_download(tmp_p
     target.unlink()
     second=subprocess.run([sys.executable,'-c',SCRIPT],input=json.dumps(spec)+'\n',capture_output=True,text=True,timeout=20)
     assert second.returncode==0,second.stdout+second.stderr
-    assert any(json.loads(line).get('skipped')==1 for line in second.stdout.splitlines())
+    assert any(json.loads(line).get('previously_downloaded')==1 for line in second.stdout.splitlines())
     assert target.read_bytes()==bytes.fromhex(spec['payload'])
     assert not (root/'Old - fixture.png').exists()

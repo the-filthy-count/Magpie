@@ -37,7 +37,7 @@ sys.exit(run(spec))
     spec['restricted']=False
     second=attempt();assert second.returncode==0,second.stdout+second.stderr
     events=[json.loads(line) for line in second.stdout.splitlines()]
-    assert any(e.get('skipped')==1 for e in events)
+    assert any(e.get('previously_downloaded')==1 for e in events)
     assert any(e.get('files')==1 for e in events)
     assert len(list(final.glob('*.png')))==2
     with sqlite3.connect(shared/'archive.sqlite3') as con:

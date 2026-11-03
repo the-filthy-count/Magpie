@@ -15,6 +15,10 @@ it('offers manual publication only for failed staged jobs',()=>{
  expect(screen.queryByRole('button',{name:'Finish with available files'})).toBeNull();
 });
 it('distinguishes partial completion from a complete album',()=>{
- render(<JobCard job={{...job,status:'completed',finish_available:true,phase:'incomplete'}} action={vi.fn()}/>);
- expect(screen.getByText('Incomplete')).toBeTruthy();
+ render(<JobCard job={{...job,status:'partially_complete',finish_available:true,phase:'incomplete'}} action={vi.fn()}/>);
+ expect(screen.getByText('Partially complete')).toBeTruthy();
+});
+it('separates previously downloaded files from deliberately skipped items',()=>{
+ render(<JobCard job={{...job,previously_downloaded:7,skipped:1}} action={vi.fn()}/>);
+ expect(screen.getByText(/7 previously downloaded/)).toHaveTextContent('1 skipped');
 });

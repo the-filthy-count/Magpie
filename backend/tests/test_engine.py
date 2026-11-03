@@ -49,7 +49,7 @@ def test_real_engine_and_archive_survive_process_restart(tmp_path):
     # just an existing output filename.
     files[0].unlink()
     second=execute(spec)
-    assert any(e.get('skipped')==1 for e in second)
+    assert any(e.get('previously_downloaded')==1 for e in second)
     assert not list(root.rglob('*.png'))
     other=tmp_path/'other';other.mkdir();otherarchive=tmp_path/'otherarchive';otherarchive.mkdir()
     third=execute({**spec,'destination_path':str(other),'archive':str(otherarchive)})
@@ -92,7 +92,7 @@ sys.exit(run(spec))
         assert result.returncode == 0, result.stdout + result.stderr
         events = [json.loads(line) for line in result.stdout.splitlines()]
         assert any(e.get('total_files') == 2 for e in events)
-        assert any(e.get('files' if attempt == 0 else 'skipped') == 2 for e in events)
+        assert any(e.get('files' if attempt == 0 else 'previously_downloaded') == 2 for e in events)
 
 
 def test_partial_file_survives_failure_and_resumes(tmp_path):

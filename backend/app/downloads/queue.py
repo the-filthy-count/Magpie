@@ -36,7 +36,7 @@ class Queue:
     async def start(self):
         self.store.execute("UPDATE jobs SET status='interrupted', completed_at=?, error='Application restarted during download', speed=NULL WHERE status='downloading'", (now(),))
         if self.store.get('settings').get('resume_interrupted'):
-            self.store.execute("UPDATE jobs SET status='queued',started_at=NULL,completed_at=NULL,error=NULL,files=0,skipped=0,bytes=0,speed=NULL,current_filename=NULL,file_bytes=NULL,file_total=NULL,total_files=NULL,cancel_requested=0 WHERE status='interrupted'")
+            self.store.execute("UPDATE jobs SET status='queued',started_at=NULL,completed_at=NULL,error=NULL,files=0,skipped=0,previously_downloaded=0,bytes=0,speed=NULL,current_filename=NULL,file_bytes=NULL,file_total=NULL,total_files=NULL,cancel_requested=0 WHERE status='interrupted'")
         self.task = asyncio.create_task(self.schedule())
     async def stop(self):
         self.stopping = True
@@ -100,7 +100,7 @@ class Queue:
             settings = effective_settings(settings, row['website'], row.get('organisation_override'))
             spec = dict(url=row['url'], destination_path=path, archive=str(archive), cookie=cookie, settings=settings, custom_fields=json.loads(row.get('custom_fields') or '{}'), filename_position=row.get('filename_position') or 'start')
             spec['finish_available'] = bool(row.get('finish_available'))
-            spec['previously_skipped'] = row.get('skipped', 0)
+            spec['previously_skipped'] = row.get('previously_downloaded', 0)
             spec.update(naming_control=control, filename_baseline=json.loads(baseline), job_id=row['id'])
             if staging:
                 spec.update(destination_path=staging, publish_destination=path, published_archive=str(published_archive), job_id=row['id'])
@@ -130,7 +130,7 @@ class Queue:
                             continue
                         if 'error' in event:
                             error = str(event['error'])[:500]
-                        allowed = {'files','skipped','bytes','speed','current_filename','file_bytes','file_total','total_files','phase','engine','engine_extractor'}
+                        allowed = {'files','skipped','previously_downloaded','bytes','speed','current_filename','file_bytes','file_total','total_files','phase','engine','engine_extractor'}
                         updates = {k: v for k, v in event.items() if k in allowed}
                         if updates:
                             self.store.execute('UPDATE jobs SET ' + ','.join(f'{k}=?' for k in updates) + ' WHERE id=?', (*updates.values(), row['id']))
@@ -169,7 +169,10 @@ class Queue:
             if process and process.returncode is None:
                 await terminate(process)
         if status == 'completed' and row.get('finish_available'):
-            error = 'Finished with available files; album incomplete. Failed files were not downloaded. Partial files remain in In Progress.'
+            # The user explicitly accepts omitting all remaining known items.
+            self.store.execute('UPDATE jobs SET skipped=MAX(skipped,MAX(0,total_files-files-previously_downloaded)) WHERE id=? AND total_files IS NOT NULL', (row['id'],))
+            status = 'partially_complete'
+            error = 'Partially complete; available files were published. Failed files were not downloaded. Partial files remain in In Progress.'
         logging.getLogger('magpie.queue').info('download_finished id=%s status=%s', row['id'], status)
-        self.store.execute("UPDATE jobs SET status=?,completed_at=?,error=?,speed=NULL,phase=CASE WHEN finish_available=1 AND ?='completed' THEN 'incomplete' ELSE phase END WHERE id=?",
+        self.store.execute("UPDATE jobs SET status=?,completed_at=?,error=?,speed=NULL,phase=CASE WHEN finish_available=1 AND ?='partially_complete' THEN 'incomplete' ELSE phase END WHERE id=?",
                            (status, now(), error, status, row['id']))
