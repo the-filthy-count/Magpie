@@ -120,9 +120,9 @@ def create_app(config_dir=None, roots=None, start_queue=True):
             if not token_row:
                 raise HTTPException(401, 'API token is invalid, expired or revoked')
             path, method = request.url.path, request.method
-            allowed = (method == 'GET' and (path in ('/api/destinations', '/api/downloads', '/api/events', '/api/version', '/api/openapi.json') or re.fullmatch(r'/api/downloads/[a-f0-9]{32}', path))) or (method == 'POST' and (path == '/api/downloads' or re.fullmatch(r'/api/downloads/[a-f0-9]{32}/(cancel|retry)', path))) or (method == 'PATCH' and re.fullmatch(r'/api/downloads/[a-f0-9]{32}', path)) or (method == 'DELETE' and (path == '/api/downloads' or re.fullmatch(r'/api/downloads/[a-f0-9]{32}', path)))
+            allowed = (method == 'GET' and (path in ('/api/destinations', '/api/downloads', '/api/events', '/api/version', '/api/openapi.json') or re.fullmatch(r'/api/downloads/[a-f0-9]{32}', path))) or (method == 'POST' and (path == '/api/downloads' or re.fullmatch(r'/api/downloads/[a-f0-9]{32}/(cancel|retry|finish-available)', path))) or (method == 'PATCH' and re.fullmatch(r'/api/downloads/[a-f0-9]{32}', path)) or (method == 'DELETE' and (path == '/api/downloads' or re.fullmatch(r'/api/downloads/[a-f0-9]{32}', path)))
             if not allowed:
-                raise HTTPException(403, 'API tokens can submit, monitor, cancel or retry downloads, delete finished history and read destinations')
+                raise HTTPException(403, 'API tokens can submit, monitor, cancel, retry or finish downloads with available files, delete finished history and read destinations')
             return {'api_token': token_row['id'], 'token': digest}
         token = request.cookies.get('magpie_session', '')
         hashed = hashlib.sha256(token.encode()).hexdigest()
@@ -409,13 +409,26 @@ def create_app(config_dir=None, roots=None, start_queue=True):
             db.execute("UPDATE jobs SET status='cancelled',completed_at=? WHERE id=? AND status='queued'", (now(),ident))
             db.execute("UPDATE jobs SET cancel_requested=1 WHERE id=? AND status='downloading'", (ident,))
         return {'ok': True}
+    @app.post('/api/downloads/{ident}/finish-available', response_model=JobView, dependencies=[Depends(auth)])
+    def finish_available(ident: str):
+        row = get_job(ident)
+        if row['status'] != 'failed' or not row.get('staging_path'):
+            raise HTTPException(409, 'Only failed jobs with In Progress storage can finish with available files')
+        destination_path(row['destination_path'], config['roots'])
+        from app.downloads.staging import prepare_staging
+        prepare_staging(row['staging_path'], row['destination_path'], config['roots'])
+        changed = store.execute("UPDATE jobs SET status='queued',finish_available=1,error=NULL,completed_at=NULL,cancel_requested=0,seq=(SELECT COALESCE(MAX(seq),0)+1 FROM jobs) WHERE id=? AND status='failed'", (ident,))
+        if not changed:
+            raise HTTPException(409, 'Job state changed; refresh and try again')
+        return get_job(ident)
+
     @app.post('/api/downloads/{ident}/retry', response_model=JobView, dependencies=[Depends(auth)])
     def retry(ident: str):
         row = get_job(ident)
         # URL DNS and original filesystem snapshot are revalidated at retry and execution.
         validate_url(row['url'])
         destination_path(row['destination_path'], config['roots'])
-        changed = store.execute("UPDATE jobs SET status='queued',created_at=?,started_at=NULL,completed_at=NULL,error=NULL,files=0,skipped=0,bytes=0,speed=NULL,current_filename=NULL,file_bytes=NULL,file_total=NULL,total_files=NULL,cancel_requested=0,seq=(SELECT COALESCE(MAX(seq),0)+1 FROM jobs) WHERE id=? AND status IN ('failed','cancelled','interrupted')", (now(),ident))
+        changed = store.execute("UPDATE jobs SET status='queued',finish_available=0,created_at=?,started_at=NULL,completed_at=NULL,error=NULL,files=0,skipped=0,bytes=0,speed=NULL,current_filename=NULL,file_bytes=NULL,file_total=NULL,total_files=NULL,cancel_requested=0,seq=(SELECT COALESCE(MAX(seq),0)+1 FROM jobs) WHERE id=? AND status IN ('failed','cancelled','interrupted')", (now(),ident))
         if not changed:
             raise HTTPException(409, 'Only failed, cancelled or interrupted jobs may be retried')
         return get_job(ident)
@@ -547,7 +560,7 @@ def create_app(config_dir=None, roots=None, start_queue=True):
                     continue
                 if path in ('/api/health', '/api/auth/setup', '/api/auth/login', '/api/auth/status'):
                     continue
-                allowed = app_access and (method == 'get' or (method == 'post' and (path == '/api/downloads' or path.endswith(('/cancel', '/retry')))) or (method == 'patch' and path == '/api/downloads/{ident}') or (method == 'delete' and (path == '/api/downloads' or path == '/api/downloads/{ident}')))
+                allowed = app_access and (method == 'get' or (method == 'post' and (path == '/api/downloads' or path.endswith(('/cancel', '/retry', '/finish-available')))) or (method == 'patch' and path == '/api/downloads/{ident}') or (method == 'delete' and (path == '/api/downloads' or path == '/api/downloads/{ident}')))
                 operation['security'] = [{'AdminSession': []}] + ([{'AppToken': []}] if allowed else [])
         return schema
     # SPA fallback must not hide unknown API endpoints.

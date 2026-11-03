@@ -99,6 +99,8 @@ class Queue:
             from app.downloads.options import effective_settings
             settings = effective_settings(settings, row['website'], row.get('organisation_override'))
             spec = dict(url=row['url'], destination_path=path, archive=str(archive), cookie=cookie, settings=settings, custom_fields=json.loads(row.get('custom_fields') or '{}'), filename_position=row.get('filename_position') or 'start')
+            spec['finish_available'] = bool(row.get('finish_available'))
+            spec['previously_skipped'] = row.get('skipped', 0)
             spec.update(naming_control=control, filename_baseline=json.loads(baseline), job_id=row['id'])
             if staging:
                 spec.update(destination_path=staging, publish_destination=path, published_archive=str(published_archive), job_id=row['id'])
@@ -166,6 +168,8 @@ class Queue:
         finally:
             if process and process.returncode is None:
                 await terminate(process)
+        if status == 'completed' and row.get('finish_available'):
+            error = 'Finished with available files; album incomplete. Failed files were not downloaded. Partial files remain in In Progress.'
         logging.getLogger('magpie.queue').info('download_finished id=%s status=%s', row['id'], status)
-        self.store.execute('UPDATE jobs SET status=?,completed_at=?,error=?,speed=NULL WHERE id=?',
-                           (status, now(), error, row['id']))
+        self.store.execute("UPDATE jobs SET status=?,completed_at=?,error=?,speed=NULL,phase=CASE WHEN finish_available=1 AND ?='completed' THEN 'incomplete' ELSE phase END WHERE id=?",
+                           (status, now(), error, status, row['id']))

@@ -1,6 +1,6 @@
 import JobTagEditor from "./JobTagEditor";
 import { useState } from "react";
-import { ArrowDownToLine, Check, ChevronRight, Clock3, Folder, LoaderCircle, RefreshCw, Trash2, X, Link2, Tags } from "lucide-react";
+import { ArrowDownToLine, Check, ChevronRight, Clock3, Folder, LoaderCircle, RefreshCw, Trash2, X, Link2, Tags, FolderOutput } from "lucide-react";
 import { bytes, date, Job, Destination } from "../services/api";
 const active = (j: Job) => ["queued", "downloading"].includes(j.status);
 export default function JobCard({
@@ -28,7 +28,7 @@ export default function JobCard({
         {j.status === "downloading" ? (
           <ArrowDownToLine size={21} />
         ) : j.status === "completed" ? (
-          <Check size={21} />
+          j.finish_available ? <FolderOutput size={21}/> : <Check size={21} />
         ) : j.status === "queued" ? (
           <Clock3 size={21} />
         ) : (
@@ -42,7 +42,7 @@ export default function JobCard({
             {j.status === "downloading" && (
               <LoaderCircle className="spin" size={11} />
             )}{" "}
-            {j.status === 'downloading' && j.phase === 'publishing' ? 'Publishing' : j.status.charAt(0).toUpperCase() + j.status.slice(1)}
+            {j.status === 'completed' && j.finish_available ? 'Incomplete' : j.status === 'downloading' && j.phase === 'publishing' ? 'Publishing' : j.status.charAt(0).toUpperCase() + j.status.slice(1)}
           </span>
         </div>
         <div className="job-url" title={j.url}>
@@ -69,6 +69,7 @@ export default function JobCard({
 
       </div>
       <div className="job-actions">
+        {j.status === 'failed' && j.staging_path && <button className="icon-button" title="Finish with available files" aria-label="Finish with available files" onClick={()=>action('/downloads/'+j.id+'/finish-available')}><FolderOutput size={17}/></button>}
         {active(j) && <button type="button" className="icon-button" title={j.phase==='publishing' ? 'Tags are locked while publishing' : 'Edit filename tag'} aria-label="Edit filename tag" disabled={j.phase==='publishing'} onClick={()=>setEditingTag(true)}><Tags size={16}/></button>}
         {active(j) ? (
           <button

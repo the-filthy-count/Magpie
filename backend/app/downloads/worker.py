@@ -20,6 +20,25 @@ def run(spec):
     if publish_destination:
         from app.downloads.staging import merge_archive
         merge_archive(Path(spec['published_archive']) / 'archive.sqlite3', archive / 'archive.sqlite3')
+    if spec.get('finish_available'):
+        if not publish_destination:
+            raise ValueError('In Progress storage is required')
+        from app.downloads.staging import publish_files
+        from app.downloads.naming import LiveNaming
+        naming = LiveNaming(root, archive, spec)
+        landlock([root, archive, publish_destination, Path(spec['published_archive'])])
+        emit(phase='publishing', speed=None)
+        mapper = naming.mapper(naming.latest(freeze=True))
+        published = publish_files(root, publish_destination, spec['job_id'], mapper=mapper, available_only=True)
+        if not published and not spec.get('previously_skipped'):
+            emit(error='No completed files are available in In Progress; nothing was published.')
+            return 1
+        merge_archive(archive / 'archive.sqlite3', Path(spec['published_archive']) / 'archive.sqlite3')
+        # Remove only successfully published sources after the archive commits.
+        # Unfinished downloads remain untouched for manual recovery.
+        from app.downloads.staging import remove_published_sources
+        remove_published_sources(root, published)
+        return 0
     # No user/system config, hooks, executable expressions or external network
     # downloaders are accepted. Only sandboxed local FFmpeg helpers may execute.
     config.clear()

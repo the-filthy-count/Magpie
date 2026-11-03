@@ -39,7 +39,8 @@ export type Job = {
   total_files?: number | null;
   engine?: 'gallery-dl' | 'yt-dlp' | null;
   engine_extractor?: string | null;
-  phase?: 'downloading' | 'publishing';
+  phase?: 'downloading' | 'publishing' | 'incomplete';
+  finish_available?: boolean;
   staging_path?: string | null;
   file_progress_percent?: number | null;
   album_progress_percent?: number | null;

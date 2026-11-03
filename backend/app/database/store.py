@@ -46,6 +46,8 @@ class Store:
             for name in ('engine', 'engine_extractor'):
                 if name not in columns:
                     db.execute(f'ALTER TABLE jobs ADD COLUMN {name} TEXT')
+            if 'finish_available' not in columns:
+                db.execute('ALTER TABLE jobs ADD COLUMN finish_available INTEGER NOT NULL DEFAULT 0')
             if 'filename_baseline' not in columns:
                 db.execute('ALTER TABLE jobs ADD COLUMN filename_baseline TEXT')
             if 'phase' not in columns:

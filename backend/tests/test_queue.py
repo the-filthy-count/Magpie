@@ -65,3 +65,23 @@ def test_running_cancellation_timeout_and_shutdown(tmp_path,monkeypatch):
         assert status=={'cancel':'cancelled','timeout':'failed','shutdown':'interrupted'}[mode]
         assert not q.active
     for mode in ('cancel','timeout','shutdown'):asyncio.run(scenario(mode))
+
+
+def test_finish_available_uses_worker_and_publication_handshake(tmp_path):
+    async def scenario():
+        destination=tmp_path/'media';destination.mkdir()
+        stage=tmp_path/'in-progress/job';stage.mkdir(parents=True)
+        (stage/'good.jpg').write_bytes(b'complete')
+        (stage/'missing.mp4.part').write_bytes(b'unfinished')
+        store=Store(tmp_path/'db.sqlite3');insert(store,'job','downloading')
+        store.execute("UPDATE jobs SET destination_path=?,staging_path=?,finish_available=1 WHERE id='job'",(str(destination),str(stage)))
+        queue=Queue(store,{'dir':tmp_path,'roots':[tmp_path],'job_timeout':30})
+        await queue.execute(store.one("SELECT * FROM jobs WHERE id='job'"),store.get('settings'))
+        row=store.one("SELECT * FROM jobs WHERE id='job'")
+        assert row['status']=='completed',row['error']
+        assert row['phase']=='incomplete' and row['finish_available']==1
+        assert 'album incomplete' in row['error']
+        assert (destination/'good.jpg').read_bytes()==b'complete'
+        assert (stage/'missing.mp4.part').read_bytes()==b'unfinished'
+        assert not (stage/'good.jpg').exists()
+    asyncio.run(scenario())

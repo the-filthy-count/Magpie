@@ -203,3 +203,9 @@ For confirmed single-file routes (including Filester `/d/` links), `total_files`
 ```
 
 Changes are allowed for queued/downloading jobs and jobs awaiting retry; completed jobs and active publication return 409. The temporary filename and `.part` file stay stable, so changing a tag does not restart the active transfer. With In Progress storage, the latest accepted fields apply to every staged file when published, including files completed earlier in the job and matching video subtitles. In immediate-save mode, edits apply when the current and subsequent files finish; files already saved keep their names. Publication freezes the accepted metadata before applying names, preventing accepted edits from being lost at the publication boundary. Retry retains the original transfer naming snapshot, filename map and partial files. A naming collision never overwrites another file.
+
+### Finish an incomplete staged download
+
+`POST /api/downloads/{id}/finish-available` accepts a failed job with In Progress storage. It queues publication of the completed files without contacting the website or retrying failed files. Session authentication (with CSRF) and API tokens are supported. Active jobs and jobs without staging return `409`.
+
+The job uses the normal concurrency limit. On success, `status` is `completed`, `finish_available` is `true`, and `phase` is `incomplete`; the UI displays **Incomplete**. Counts and percentages remain measured, so album progress may remain below 100%. Only successfully retrieved entries are merged into the destination archive. Unfinished `.part`/`.ytdl` files remain in In Progress. Successful files use the latest filename tags, and conflicting destination files are never overwritten.

@@ -93,7 +93,7 @@ def _matches(source_fd, name, directory_fd):
         os.close(fd)
 
 
-def publish_files(source, destination, ident, mapper=None):
+def publish_files(source, destination, ident, mapper=None, available_only=False):
     source, destination = Path(source), Path(destination)
     # Validate the full inventory before exposing any files. Directory traversal
     # uses no-follow directory descriptors to prevent symlink replacement races.
@@ -105,6 +105,8 @@ def publish_files(source, destination, ident, mapper=None):
         for name in files:
             relative = (Path(current) / name).relative_to(source)
             if name.endswith(('.part', '.ytdl')) or name.startswith('.magpie-transfer-') or '.magpie-in-progress' in relative.parts:
+                if available_only:
+                    continue
                 raise ValueError('Unfinished temporary files remain; retry before publishing')
             target = Path(mapper(relative)) if mapper else relative
             if target.is_absolute() or '..' in target.parts or target.parent != relative.parent or target.name.startswith('.magpie-'):
@@ -164,4 +166,19 @@ def publish_files(source, destination, ident, mapper=None):
                 os.close(dst_dir)
     finally:
         os.close(stage_fd)
+        os.close(root_fd)
+
+    return [relative for relative, target in inventory]
+
+
+def remove_published_sources(source, inventory):
+    root_fd = os.open(source, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        for relative in inventory:
+            fd = _directory(root_fd, relative.parts[:-1])
+            try:
+                os.unlink(relative.name, dir_fd=fd)
+            finally:
+                os.close(fd)
+    finally:
         os.close(root_fd)

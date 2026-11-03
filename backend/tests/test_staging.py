@@ -195,3 +195,55 @@ def test_cancellation_retains_staging_snapshot(tmp_path,monkeypatch):
         finally:
             await queue.stop()
     asyncio.run(scenario())
+
+
+def test_finish_available_publishes_without_network_and_keeps_partials(tmp_path):
+    stage=tmp_path/'stage';stage.mkdir();dest=tmp_path/'final';dest.mkdir()
+    archive=tmp_path/'archive';archive.mkdir();private=archive/'jobs/job';private.mkdir(parents=True)
+    (stage/'good.jpg').write_bytes(b'complete')
+    (stage/'failed.mp4.part').write_bytes(b'partial')
+    with sqlite3.connect(private/'archive.sqlite3') as db:
+        db.execute('CREATE TABLE archive(entry TEXT PRIMARY KEY)')
+        db.execute("INSERT INTO archive VALUES ('good')")
+    control=tmp_path/'control.json';control.write_text(json.dumps(dict(custom_fields={'tag':'Keep'},filename_position='end',frozen=True)))
+    spec=dict(url='https://invalid.invalid/never-contact',destination_path=str(stage),publish_destination=str(dest),published_archive=str(archive),archive=str(private),job_id='job',finish_available=True,naming_control=str(control),filename_baseline=dict(custom_fields={},filename_position='start'),settings=DEFAULTS)
+    from app.downloads.naming import LiveNaming
+    naming=LiveNaming(stage,private,spec);naming.remember(stage/'good.jpg','good.jpg');naming.db.close()
+    script="""
+import json,sys
+from app.downloads import worker
+worker.validate_url=lambda *_: (_ for _ in ()).throw(AssertionError('Network validation must not run'))
+sys.exit(worker.run(json.loads(sys.stdin.readline())))
+"""
+    result=subprocess.run([sys.executable,'-c',script],input=json.dumps(spec)+'\n',capture_output=True,text=True,timeout=20)
+    assert result.returncode==0,result.stdout+result.stderr
+    assert (dest/'good - Keep.jpg').read_bytes()==b'complete'
+    assert not (dest/'failed.mp4.part').exists()
+    assert (stage/'failed.mp4.part').read_bytes()==b'partial'
+    with sqlite3.connect(archive/'archive.sqlite3') as db:
+        assert db.execute('SELECT entry FROM archive').fetchall()==[('good',)]
+    assert not (stage/'good.jpg').exists()
+
+
+def test_finish_available_api_state_and_retry(admin,destination):
+    job=admin.post('/api/downloads',json={'url':'https://example.com/media.jpg','destination_id':destination['id']}).json()
+    ident=job['id'];url='/api/downloads/'+ident+'/finish-available'
+    assert admin.post(url).status_code==409
+    store=admin.app_ref.state.store
+    store.execute("UPDATE jobs SET status='failed',error='Transfer failed' WHERE id=?",(ident,))
+    result=admin.post(url)
+    assert result.status_code==200,result.text
+    assert result.json()['status']=='queued' and result.json()['finish_available'] is True
+    assert admin.post(url).status_code==409
+    store.execute("UPDATE jobs SET status='failed' WHERE id=?",(ident,))
+    retry=admin.post('/api/downloads/'+ident+'/retry')
+    assert retry.status_code==200 and retry.json()['finish_available'] is False
+
+
+def test_available_only_still_rejects_symlinks_and_conflicts(tmp_path):
+    stage=tmp_path/'stage';stage.mkdir();dest=tmp_path/'dest';dest.mkdir()
+    (stage/'ok.jpg').write_bytes(b'ok');(stage/'bad.part').write_bytes(b'partial')
+    (dest/'ok.jpg').write_bytes(b'other')
+    with pytest.raises(FileExistsError):publish_files(stage,dest,'job',available_only=True)
+    (stage/'escape.part').symlink_to(tmp_path/'outside')
+    with pytest.raises(PermissionError):publish_files(stage,dest,'job',available_only=True)

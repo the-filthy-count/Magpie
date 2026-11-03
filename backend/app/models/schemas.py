@@ -193,7 +193,8 @@ class JobView(BaseModel):
     attempts: int
     custom_fields: dict[str,str] = Field(default_factory=dict)
     filename_position: Literal['start','end'] = 'start'
-    phase: Literal['downloading','publishing'] = 'downloading'
+    phase: Literal['downloading','publishing','incomplete'] = 'downloading'
+    finish_available: bool = False
     staging_path: str | None = None
     engine: Literal['gallery-dl','yt-dlp'] | None = None
     engine_extractor: str | None = None
