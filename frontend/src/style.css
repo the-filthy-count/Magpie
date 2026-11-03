@@ -2148,3 +2148,66 @@ img.avatar { display:block; object-fit:cover; border:0; background:transparent; 
 .tag-dialog form { display:flex; flex-direction:column; gap:10px; margin-top:20px; }
 .tag-dialog .button-row { margin-top:12px; }
 .tag-dialog label { font-size:12px; }
+
+/* Light mode reverses the brand surfaces: Ice White canvas, dark content. */
+:root[data-theme="light"] {
+  --bg:#F1F6FC; --text:#001330; --muted:#496171; --line:#C8D7E2;
+  --panel:#030812; --panel2:#111D29; --side:#030812;
+  --app-background:radial-gradient(ellipse at 50% 25%,#00545415,transparent 65%),var(--bg);
+  --tile-bg:#030812; --tile-input:#111D29; --tile-line:#294452;
+  --tile-text:#F1F6FC; --tile-muted:#ADC3D2; --tile-accent:#85C9CE;
+  color:var(--text); background:var(--bg); color-scheme:light;
+}
+:root[data-theme="light"] :is(.download-panel,.stat-card,.job-list,.job-card,.destination-card,.settings-card,.filter-bar,.login-card,.folder-dialog,.info-note) {
+  --panel:var(--tile-bg); --panel2:var(--tile-input); --input:var(--tile-input);
+  --line:var(--tile-line); --text:var(--tile-text); --muted:var(--tile-muted); --accent:var(--tile-accent);
+  background:var(--tile-bg); color:var(--tile-text); border-color:var(--tile-line); color-scheme:dark;
+}
+:root[data-theme="light"] :is(.download-panel,.job-card,.destination-card,.settings-card,.filter-bar,.login-card,.folder-dialog) :is(label,small,p,.muted,.job-url,.job-meta,.job-time,.current-file,.current-file>span,.selected-path,.panel-note,.panel-note>span,.panel-top>span:last-child,.destination-state,.destination-card code),
+:root[data-theme="light"] .stat-card :is(div,small),
+:root[data-theme="light"] :is(.filename-tag-label label,.filename-tag-position) { color:var(--tile-muted); }
+:root[data-theme="light"] .stat-card > strong { color:var(--tile-text); }
+:root[data-theme="light"] .stat-card svg { color:var(--tile-accent); }
+:root[data-theme="light"] :is(.download-panel,.settings-card,.filter-bar,.login-card,.folder-dialog) :is(input,select,textarea),
+:root[data-theme="light"] .download-panel .filename-tag-controls :is(input,select) {
+  background:var(--tile-input); color:var(--tile-text); border-color:var(--tile-line); color-scheme:dark;
+}
+:root[data-theme="light"] :is(.download-panel,.settings-card,.filter-bar,.login-card,.folder-dialog) :is(input,textarea)::placeholder { color:var(--tile-muted); }
+:root[data-theme="light"] :is(select option,select optgroup) { background:var(--tile-input); color:var(--tile-text); }
+:root[data-theme="light"] .download-panel :is(.url-control,.destination-select) { background:var(--tile-input); color:var(--tile-accent); border-color:var(--tile-line); }
+:root[data-theme="light"] .download-panel .panel-note { background:var(--tile-input); color:var(--tile-muted); }
+:root[data-theme="light"] .download-panel :is(button.destination-trigger,button.destination-option),
+:root[data-theme="light"] .destination-options { background:var(--tile-input); color:var(--tile-text); border-color:var(--tile-line); }
+:root[data-theme="light"] .download-panel button.destination-option.focused { background:#234251; }
+:root[data-theme="light"] .download-panel :is(.destination-trigger,.destination-option) small { color:var(--tile-muted); }
+:root[data-theme="light"] :is(.destination-trigger,.destination-option) > svg,
+:root[data-theme="light"] .download-panel .filename-tag-label .help-tooltip > button { color:var(--tile-accent); }
+:root[data-theme="light"] :is(.job-card,.destination-card,.job-list) :is(.site-icon,.destination-art,.empty>span),
+:root[data-theme="light"] .job-card .status-pill,
+:root[data-theme="light"] .job-card .status-pill:is(.downloading,.completed,.failed,.interrupted),
+:root[data-theme="light"] .destination-card .subtle-badge { background:#F1F6FC; color:#002C46; border-color:#F1F6FC; }
+:root[data-theme="light"] .job-card .progress,
+:root[data-theme="light"] .job-card .progress progress::-webkit-progress-bar { background:#294452; }
+:root[data-theme="light"] .job-card .progress > div,
+:root[data-theme="light"] .job-card .progress progress::-webkit-progress-value { background:#85C9CE; }
+:root[data-theme="light"] .job-card .progress progress::-moz-progress-bar { background:#85C9CE; }
+:root[data-theme="light"] :is(.issued-token,.api-guide pre,.site-rule) { background:var(--tile-input); color:var(--tile-text); border-color:var(--tile-line); }
+:root[data-theme="light"] .download-preferences { border-color:var(--tile-line); }
+:root[data-theme="light"] :is(.download-panel,.settings-card,.login-card,.job-card,.folder-dialog) .form-error,
+:root[data-theme="light"] .error-row p { color:#FFB6BA; }
+:root[data-theme="light"] .help-tooltip-content { background:#F1F6FC; color:#001330; border-color:#C8D7E2; }
+:root[data-theme="light"] .help-tooltip-content::before { background:#F1F6FC; border-color:#C8D7E2; }
+:root[data-theme="light"] .sidebar { background:#030812; color:#F1F6FC; border-color:#294452; }
+:root[data-theme="light"] .sidebar .brand { color:#F1F6FC; }
+:root[data-theme="light"] .sidebar .brand img { filter:drop-shadow(0 0 12px #F1F6FC55); }
+:root[data-theme="light"] .sidebar :is(.workspace-label,.nav-item,.sidebar-footer,.sidebar-footer small) { color:#ADC3D2; }
+:root[data-theme="light"] .sidebar .nav-item:hover { background:#111D29; }
+:root[data-theme="light"] .sidebar .nav-item.selected { background:var(--app-background); background-attachment:fixed; color:#001330; border-color:#F1F6FC; }
+:root[data-theme="light"] .sidebar .nav-item.selected svg { color:#001330; }
+:root[data-theme="light"] .sidebar .local-badge { background:#111D29; color:#F1F6FC; border-color:#294452; }
+:root[data-theme="light"] .sidebar .local-badge small { color:#ADC3D2; }
+:root[data-theme="light"] .network-status { color:#F1F6FC; border-color:#294452; }
+:root[data-theme="light"] .network-status :is(.network-status-heading,p) { color:#ADC3D2; }
+:root[data-theme="light"] .network-status code { color:#F1F6FC; }
+:root[data-theme="light"] .topbar b { color:#001330; }
+:root[data-theme="light"] .page-footer { color:#496171; }
