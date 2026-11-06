@@ -1,6 +1,6 @@
 import NetworkStatus from "./components/NetworkStatus";
 import { useState, useEffect, useCallback } from "react";
-import { ArrowDownToLine, ArrowUpRight, Check, CheckCheck, ChevronRight, Folder, ListRestart, LogOut, Menu, Settings2, ShieldCheck, X, Image, Sun, Moon } from "lucide-react";
+import { ArrowDownToLine, ArrowUpRight, Check, CheckCheck, Folder, ListRestart, LogOut, Menu, Settings2, X, Image, Sun, Moon } from "lucide-react";
 import { api, setCsrf, bytes, Job, Destination } from "./services/api";
 
 type Notice = (message: string) => void;
@@ -177,10 +177,11 @@ export default function App() {
           >
             <Menu />
           </button>
-          <span>
-            Workspace <ChevronRight size={14} />
-            <b>{page.charAt(0).toUpperCase() + page.slice(1)}</b>
-          </span>
+          {page === "downloads" ? (
+            <h1 className="topbar-tagline">Find it. Fetch it. File it.</h1>
+          ) : (
+            <span className="topbar-tagline">Find it. Fetch it. File it.</span>
+          )}
           <div className="topbar-right">
             <span className="online">
               <span className={engine===false?"status-dot bad":"status-dot"} /> {engine===null?"Checking engine…":engine?"Engine online":"Engine unavailable"}
@@ -208,19 +209,9 @@ export default function App() {
             <img className="avatar" src="/id.webp" alt="Administrator profile" width="28" height="28" />
           </div>
         </header>
-        <div className="page-content">
+        <div className={"page-content" + (page === "downloads" ? " downloads-page" : "")}>
           {page === "downloads" && (
             <>
-              <div className="page-heading">
-                <div>
-                  <h1>
-                    Find it. Fetch it. File it<span>.</span>
-                  </h1>
-                </div>
-                <span className="subtle-badge">
-                  <ShieldCheck size={14} /> Made for your NAS
-                </span>
-              </div>
               <DownloadForm
                 destinations={destinations}
                 onCreated={() => {
